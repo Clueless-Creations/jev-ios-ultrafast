@@ -11,6 +11,10 @@ export async function runSimulatorGoal({
   goal,
   expectLabels,
   scenarioPath,
+  engine = "jev",
+  baselineModel,
+  minProbability,
+  budgetUsd,
   allowLabels = [],
   vercelProject,
   maxSteps,
@@ -34,6 +38,10 @@ export async function runSimulatorGoal({
     if (!validLabels(expectLabels, true)) throw new Error("expectLabels must contain 1 to 30 exact visible UI labels, at most 300 characters each");
   }
   if (!validLabels(allowLabels, false)) throw new Error("allowLabels must contain at most 30 exact labels, at most 300 characters each");
+  if (!["jev", "baseline"].includes(engine)) throw new Error("engine must be jev or baseline");
+  if (baselineModel !== undefined && !validString(baselineModel, 200)) throw new Error("baselineModel must be nonempty");
+  if (minProbability !== undefined && (!Number.isFinite(minProbability) || minProbability < 0 || minProbability > 1)) throw new Error("minProbability must be between 0 and 1");
+  if (budgetUsd !== undefined && (!Number.isFinite(budgetUsd) || budgetUsd <= 0)) throw new Error("budgetUsd must be positive");
   if (vercelProject !== undefined && !validString(vercelProject, 300)) throw new Error("vercelProject must be nonempty");
   if (maxSteps !== undefined && (!Number.isInteger(maxSteps) || maxSteps < 1 || maxSteps > 30)) throw new Error("maxSteps must be between 1 and 30");
   if (!Number.isInteger(timeoutMs) || timeoutMs <= 0 || timeoutMs > 600_000) throw new Error("timeoutMs must be an integer between 1 and 600000");
@@ -51,6 +59,10 @@ export async function runSimulatorGoal({
   const option = (name, value) => args.push(`${name}=${value}`);
   option("--udid", udid);
   option("--bundle-id", bundleId);
+  option("--engine", engine);
+  if (baselineModel !== undefined) option("--baseline-model", baselineModel);
+  if (minProbability !== undefined) option("--min-probability", minProbability);
+  if (budgetUsd !== undefined) option("--budget-usd", budgetUsd);
   if (scenarioPath !== undefined) option("--scenario", scenarioPath);
   else {
     option("--goal", goal);

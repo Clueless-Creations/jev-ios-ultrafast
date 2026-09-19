@@ -120,3 +120,10 @@ test("spawn failure returns a sanitized process error", async (t) => {
   const options = await fixture(t);
   await assert.rejects(runSimulatorGoal({ ...options, python: path.join(options.root, "absent") }), /Unable to start simulator runner \(ENOENT\)/);
 });
+
+test('baseline options are forwarded without inventing a confidence value', async (t) => {
+  const options = await fixture(t);
+  const result = await runSimulatorGoal({...options, engine:'baseline', baselineModel:'openai/gpt-5.4-nano', minProbability:0, budgetUsd:0.1});
+  for (const argument of ['--engine=baseline','--baseline-model=openai/gpt-5.4-nano','--min-probability=0','--budget-usd=0.1']) assert.ok(result.args.includes(argument));
+  for (const extra of [{engine:'unknown'},{minProbability:NaN},{minProbability:-1},{budgetUsd:0},{baselineModel:''}]) await assert.rejects(runSimulatorGoal({...options,...extra}));
+});

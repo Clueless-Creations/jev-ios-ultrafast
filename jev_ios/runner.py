@@ -80,10 +80,14 @@ class Runner:
                     status, reason = "blocked", "unoffered_target"
                     break
             probability = decision.get("probability")
-            if type(probability) not in (int, float) or not math.isfinite(probability) or not 0 <= probability <= 1:
+            unreported = probability is None and decision.get("confidence_kind") == "not_reported"
+            if unreported and self.min_probability > 0:
+                status, reason = "blocked", "confidence_not_reported"
+                break
+            if not unreported and (type(probability) not in (int, float) or not math.isfinite(probability) or not 0 <= probability <= 1):
                 status, reason = "blocked", "invalid_confidence"
                 break
-            if probability < self.min_probability:
+            if not unreported and probability < self.min_probability:
                 status, reason = "blocked", "low_confidence"
                 break
             if operation == "BLOCKED":

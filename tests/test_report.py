@@ -89,6 +89,13 @@ class ReportTests(unittest.TestCase):
         self.assertEqual(embedded_data(source)["video_offset_ms"], 140)
         self.assertEqual(stat.S_IMODE(self.output.stat().st_mode), 0o600)
 
+    def test_baseline_confidence_is_preserved_as_unreported(self):
+        events=[{"type":"decision","step":0,"model_ms":500,"probability":None,"confidence_kind":"not_reported"},
+                {"type":"action","step":0,"operation":"TAP","target_label":"Settings","elapsed_ms":1000}, result()]
+        write_report(self.output,events)
+        self.assertIsNone(embedded_data(self.output.read_text())["timeline"][0]["probability"])
+        self.assertIn("Confidence not reported",self.output.read_text())
+
     def test_missing_video_does_not_write_report(self):
         with self.assertRaises((OSError, ValueError)):
             write_report(self.output, [result()], video=self.root / "missing.mp4")

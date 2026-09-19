@@ -6,8 +6,8 @@ The Mac owns observation and input. Jev evaluates a compact accessibility snapsh
 flowchart LR
     App[iOS Simulator] --> Observe[Local accessibility snapshot]
     Observe --> Questions[Permitted actions and indexed targets]
-    Questions --> Jev[Jev evaluation request]
-    Jev --> Validate[Validate selected answers]
+    Questions --> Model[Jev evaluation or baseline JSON request]
+    Model --> Validate[Validate selected answers]
     Validate --> Execute[Freshness check and local input]
     Execute --> App
     Observe --> Verify[Exact expected-label check]
@@ -20,9 +20,15 @@ The model request uses `typesafe-ai/jev` at Vercel's `/v1/evaluate` endpoint. It
 
 One choice question selects an operation. Separate questions speculate about the target for each supported operation. Only the selected operation's target answer can affect execution. For typing, each candidate field also gets a choice among exact caller-supplied strings. After selecting a field, the runner uses only that field's value answer.
 
-For example, an operation answer of `TAP` can select observed target `4`. Unused text-field answers have no effect. A `TYPE_TEXT` answer instead selects an observed empty field and a caller-supplied text key. The device resolves the key locally and enters the exact value; there is no text-generation model in this package.
+For example, an operation answer of `TAP` can select observed target `4`. Unused text-field answers have no effect. A `TYPE_TEXT` answer instead selects an observed empty field and a caller-supplied text key. The device resolves the key locally and enters the exact value; neither model generates text to enter into the app.
 
 The model adapter checks choice IDs, complete probability maps, finite values, and probability consistency. It uses one persistent HTTPS client with request, response, timeout, and call limits. Failed attempts consume the call budget. It never automatically retries a request.
+
+## Baseline and matched comparisons
+
+`ChatCompletionModel` sends the same state and offered choices to Vercel's chat-completions endpoint. GPT-5.4 Nano is the default baseline, with reasoning disabled, temperature zero, and a strict JSON schema. The adapter independently rejects unknown operations, target IDs, text keys, truncation, refusals, and incompatible field combinations. Its response carries no calibrated confidence; the runner permits that explicit absence only with a zero confidence threshold.
+
+The comparison harness uses zero confidence threshold for both engines. Both retain all target, freshness, and completion checks. It alternates engine order, restarts the app for every attempt, records a semantic starting-state fingerprint, and retains failed attempts. Paired ratios require verified outcomes and identical starting fingerprints across the cohort. Request latency, task time, setup time, and estimated token cost remain separate measurements. See the [comparison protocol](comparison.md).
 
 ## Observation and execution
 
@@ -53,7 +59,7 @@ NDJSON events record observations, model decisions, execution receipts, and the 
 
 The Python interfaces live in `jev_ios/protocols.py`. The validated scenario loader defines the accepted JSON shape. Use these source contracts when adding adapters; the architecture document does not introduce another runtime or competing schema.
 
-A new device adapter must preserve target identity and freshness semantics. A new model adapter must return only offered operations, targets, and text keys, with finite probabilities. Keep the runner's deterministic checks even when a provider promises structured output. The current Node wrapper integrates at the host layer; native Brigade provider registration remains separate work.
+A new device adapter must preserve target identity and freshness semantics. A new model adapter must return only offered operations, targets, and text keys, with finite probabilities or an explicit `confidence_kind: "not_reported"` and null probability. Missing confidence cannot pass a positive confidence threshold. Keep the runner's deterministic checks even when a provider promises structured output. The current Node wrapper integrates at the host layer; native Brigade provider registration remains separate work.
 
 ## Design provenance
 
