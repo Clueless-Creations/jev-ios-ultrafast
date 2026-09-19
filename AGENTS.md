@@ -9,6 +9,9 @@ This repository contains a local iOS Simulator runner and the Daybreak fixture a
 | `jev_ios/cli.py` | CLI options, credentials, pricing admission, run artifacts |
 | `jev_ios/runner.py` | Bounded decisions, execution, final label verification |
 | `jev_ios/model.py` | Vercel evaluation transport and strict choice validation |
+| `jev_ios/baseline.py` | Standard model transport and strict JSON action validation |
+| `jev_ios/comparison.py` | Matched reset, alternating pairs, timing and cost summaries |
+| `jev_ios/comparison_report.py` | Self-contained paired replay and all-attempt results |
 | `jev_ios/device.py` | AXe snapshots, app identity, local input and receipts |
 | `jev_ios/protocols.py` | Device, model, and snapshot adapter interfaces |
 | `jev_ios/scenario.py` | Portable scenario validation and defaults |

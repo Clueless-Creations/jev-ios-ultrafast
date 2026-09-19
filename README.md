@@ -4,6 +4,24 @@ Give an iOS Simulator a goal. Jev chooses an action and a control from the curre
 
 Inspired by [Browser Use's Jev Ultrafast](https://github.com/browser-use/jev-ultrafast), this standalone Python package includes a native trip-planning app, reusable scenarios, NDJSON traces, and a local HTML run report. It uses Vercel AI Gateway for Jev and [AXe](https://github.com/cameroncooke/AXe) for simulator input. The runner has no Python runtime dependencies and needs no web deployment.
 
+## Compare with a standard model
+
+The same runner can use GPT-5.4 Nano to generate a validated JSON action instead of Jev's choice evaluation. Both receive the same accessibility state and offered controls, execute through the same device adapter, and must pass the same local checks. Run a fixed, alternating three-pair comparison with recordings:
+
+```sh
+jev-ios compare \
+  --scenario scenarios/showcase.json \
+  --udid "$SIMULATOR_UDID" --bundle-id org.example.jevsimdemo \
+  --start-label Daybreak --start-label Lisbon --start-label Kyoto \
+  --pairs 3 --budget-usd 1 \
+  --vercel-project YOUR_EXISTING_VERCEL_PROJECT \
+  --output-dir runs/comparison-01
+```
+
+Open `runs/comparison-01/comparison.html` for synchronized normal-speed replays, every attempt, completion rates, task time, model latency, and estimated cost. The command resets the app process before each attempt and checks the starting screen. An arbitrary app may need its own fixture-data reset. Read the [comparison protocol](docs/comparison.md) before comparing another app.
+
+**Recorded comparison:** Jev passed 5/6 attempts; GPT-5.4 Nano passed 2/6. The sole pair where both passed took **14.65 s versus 25.64 s** (1.75×). Four baseline attempts hit HTTP 429; one Jev attempt timed out. This is one local fixture, with one mutually successful pair—not a general speed claim. [Open the paired replay](docs/media/comparison.html) · [All results and measurement limits](docs/comparison.md#recorded-results--september-19-2026).
+
 ## Watch it run
 
 **Seven native actions in 16.61 seconds. Median Jev response: 224 ms.** One recorded run on iOS 26.2 Simulator, including observation, input, and final verification. Model response time is only part of the total.
@@ -49,7 +67,7 @@ Open `runs/daybreak.html` to review the run and its recording. The trace records
 
 Authentication accepts `AI_GATEWAY_API_KEY` or `VERCEL_OIDC_TOKEN` in the process environment. With either set, omit `--vercel-project`. That option instead obtains a temporary development token through an existing Vercel CLI login and project. Tokens stay in memory. See [Vercel's authentication docs](https://vercel.com/docs/ai-gateway/authentication-and-byok/oidc).
 
-Before inference, the CLI reads provider pricing and checks a conservative estimate against `--budget-usd` (default $0.10). This admission check is separate from a provider billing cap. Jev uses the [evaluation API](https://vercel.com/docs/ai-gateway/modalities/evaluation), with no automatic model retries. Published run results and their limits belong in [verification](docs/verification.md).
+Before inference, the CLI reads provider pricing and checks a conservative estimate against `--budget-usd` (default $0.10 for a single run, $1 for a comparison cohort). This admission check is separate from a provider billing cap. Jev uses the [evaluation API](https://vercel.com/docs/ai-gateway/modalities/evaluation), with no automatic model retries. Published run results and their limits belong in [verification](docs/verification.md).
 
 ## Run another app
 

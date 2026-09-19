@@ -58,7 +58,7 @@ def _result(raw):
     if not isinstance(usage, list) or len(usage) > 30 or any(not isinstance(item, dict) for item in usage):
         raise ValueError("Report usage must be a bounded list of token-count objects")
     result["usage"] = [{key: _number(value, "token count", integer=True) for key, value in item.items()
-                        if key in {"inputTokens", "outputTokens", "totalTokens"}} for item in usage]
+                        if key in {"inputTokens", "outputTokens", "totalTokens", "cacheReadInputTokens"}} for item in usage]
     for key in ("verification", "final_screen_hash"):
         if raw.get(key) is not None:
             result[key] = _text(raw[key], key)
@@ -98,8 +98,9 @@ def write_report(path, events, *, video=None, screenshot=None, title="Jev · iOS
     for e in events:
         if e.get("type") == "decision":
             step = _number(e.get("step"), "decision step", integer=True)
+            probability = None if e.get("probability") is None and e.get("confidence_kind") == "not_reported" else _number(e.get("probability", 0), "probability", maximum=1)
             decisions[step] = {"model_ms": _number(e.get("model_ms", 0), "decision time"),
-                               "probability": _number(e.get("probability", 0), "probability", maximum=1)}
+                               "probability": probability}
         if e.get("type") == "action":
             step = _number(e.get("step"), "action step", integer=True)
             operation = e.get("operation")
@@ -145,11 +146,11 @@ TEMPLATE = '''<!doctype html>
 <header><div class="brand">jev<span> / iOS</span></div><div class="badge">__BADGE__</div></header>
 <main><section class="visual"><div class="device">__MEDIA__</div><p class="caption">__CAPTION__</p></section><section>
 <p class="eyebrow">ONE GOAL. OBSERVED CONTROLS. REAL TAPS.</p><h1 id="headline">A plan, at the<br>speed of a thought.</h1><p class="goal" id="goal"></p>
-<div class="stats"><div><div class="number" id="total"></div><div class="stat-label">Full run · including device work</div></div><div><div class="number" id="median"></div><div class="stat-label">Median Jev decision</div></div><div><div class="number" id="actions"></div><div class="stat-label">Executed actions</div></div></div>
+<div class="stats"><div><div class="number" id="total"></div><div class="stat-label">Full run · including device work</div></div><div><div class="number" id="median"></div><div class="stat-label">Median model decision</div></div><div><div class="number" id="actions"></div><div class="stat-label">Executed actions</div></div></div>
 <div class="section"><h2>Decision trace</h2><span>MODEL TIME / ACTION</span></div><div id="timeline"></div>
 <div class="outcome"><strong id="status"></strong><br><span id="proof"></span></div>
 <div class="controls"><button id="replay">Replay from start</button><button id="download">Download result</button></div>
-<p class="foot">Jev reads the accessibility tree and picks an operation and a compatible target together. The Mac verifies fresh state before every tap. Final labels are checked locally. Timings describe this run only; no general benchmark claim.</p>
+<p class="foot">The model reads the accessibility tree and selects an operation and a compatible target. The Mac verifies fresh state before every tap. Final labels are checked locally. Timings describe this run only; no general benchmark claim.</p>
 </section></main>
 <script type="application/json" id="data">__DATA__</script><script>
 const data=JSON.parse(document.getElementById('data').textContent),r=data.result,v=document.getElementById('recording');
@@ -157,7 +158,7 @@ const set=(id,s)=>document.getElementById(id).textContent=s;
 set('goal',r.goal);set('total',(r.elapsed_ms/1000).toFixed(2)+' s');set('median',Math.round(data.median_ms)+' ms');set('actions',r.actions_executed);
 set('headline',r.status==='verified'?'From intent to done.':'Every attempt, visible.');set('status',r.status==='verified'?'Verified on the simulator':r.status.toUpperCase()+' · '+r.reason);set('proof',(r.matched_labels||[]).join(' · ')||'Required labels were not all observed.');
 const peak=Math.max(1,...data.timeline.map(a=>a.model_ms));
-data.timeline.forEach((a,i)=>{const b=document.createElement('button');b.className='row';const n=document.createElement('span');n.className='index';n.textContent=String(i+1).padStart(2,'0');const c=document.createElement('div');const l=document.createElement('div');l.className='label';l.textContent=a.label;const d=document.createElement('div');d.className='detail';d.textContent=a.operation+' · '+Math.round(a.probability*100)+'% choice probability';const bar=document.createElement('div');bar.className='bar';const fill=document.createElement('i');fill.style.width=(a.model_ms/peak*100)+'%';bar.append(fill);c.append(l,d,bar);const t=document.createElement('span');t.className='time';t.textContent=Math.round(a.model_ms)+' ms';b.append(n,c,t);b.onclick=()=>{if(v){v.currentTime=Math.max(0,(a.elapsed_ms+data.video_offset_ms)/1000-1);v.play();}};document.getElementById('timeline').append(b);});
+data.timeline.forEach((a,i)=>{const b=document.createElement('button');b.className='row';const n=document.createElement('span');n.className='index';n.textContent=String(i+1).padStart(2,'0');const c=document.createElement('div');const l=document.createElement('div');l.className='label';l.textContent=a.label;const d=document.createElement('div');d.className='detail';d.textContent=a.operation+' · '+(a.probability===null?'Confidence not reported':Math.round(a.probability*100)+'% choice probability');const bar=document.createElement('div');bar.className='bar';const fill=document.createElement('i');fill.style.width=(a.model_ms/peak*100)+'%';bar.append(fill);c.append(l,d,bar);const t=document.createElement('span');t.className='time';t.textContent=Math.round(a.model_ms)+' ms';b.append(n,c,t);b.onclick=()=>{if(v){v.currentTime=Math.max(0,(a.elapsed_ms+data.video_offset_ms)/1000-1);v.play();}};document.getElementById('timeline').append(b);});
 if(v)v.ontimeupdate=()=>{const ms=v.currentTime*1000-data.video_offset_ms;let i=data.timeline.findIndex(a=>a.elapsed_ms>ms);if(i<0)i=data.timeline.length-1;document.querySelectorAll('.row').forEach((e,j)=>e.classList.toggle('active',j===i));};
 document.getElementById('replay').onclick=()=>{if(v){v.playbackRate=1;v.currentTime=0;v.play();}};document.getElementById('download').onclick=()=>{const blob=new Blob([JSON.stringify(r,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='jev-ios-result.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);};
 </script></html>'''

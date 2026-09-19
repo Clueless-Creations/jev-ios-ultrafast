@@ -146,6 +146,22 @@ class RunnerTests(unittest.TestCase):
         self.assertEqual(result["reason"], "unoffered_operation")
         self.assertEqual(device.execute_calls, [])
 
+    def test_unreported_confidence_needs_explicit_zero_cutoff(self):
+        for cutoff, expected in [(0, "verified"), (.55, "blocked")]:
+            with self.subTest(cutoff=cutoff):
+                result, device, _, _ = self.run_fixture(
+                    [FakeSnapshot(taps={"1":"Continue"}), FakeSnapshot("screen-b", labels=["Finished"])],
+                    [decision("TAP", "1", probability=None, confidence_kind="not_reported")],
+                    max_steps=1, min_probability=cutoff)
+                self.assertEqual(result["status"], expected)
+                self.assertEqual(len(device.execute_calls), 1 if cutoff == 0 else 0)
+
+    def test_missing_confidence_without_marker_is_invalid_even_at_zero_cutoff(self):
+        result, device, _, _ = self.run_fixture([FakeSnapshot(taps={"1":"Continue"})],
+            [decision("TAP", "1", probability=None)], min_probability=0)
+        self.assertEqual(result["reason"], "invalid_confidence")
+        self.assertEqual(device.execute_calls, [])
+
     def test_low_probability_blocks_before_device_input(self):
         result, device, _, _ = self.run_fixture(
             [FakeSnapshot(taps={"1": "Continue"})], [decision("TAP", "1", probability=0.2)]
