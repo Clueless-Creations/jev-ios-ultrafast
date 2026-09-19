@@ -1,8 +1,10 @@
 # Matched simulator comparison
 
-This compares Jev's indexed choice API with GPT-5.4 Nano generating a JSON action. Both use the same accessibility observations, offered operations and targets, local execution adapter, and final-label verifier. It is a comparison of two complete decision backends, not an isolated test of decoding architecture.
+The comparison pairs Jev's indexed choice API with a model that generates a JSON action. Both use the same accessibility observations, offered operations and targets, local execution adapter, and final-label verifier. Results compare two complete decision backends, including their provider formats and model capabilities.
 
-The baseline uses one structured-output request per decision, temperature 0, reasoning effort `none`, and at most 128 output tokens. The selected model is `openai/gpt-5.4-nano` through Vercel AI Gateway. The catalog lists it as a small model intended for classification, extraction, ranking, and subagents; it was selected before measuring the cohort. Both adapters use a fresh connection per attempt and reuse it between decisions.
+Each baseline uses one structured-output request per decision. The default `openai/gpt-5.4-nano` profile uses temperature `0`, reasoning effort `none`, and a 128-token generation limit. The `openai/gpt-6-astra` and `openai/gpt-6-astra-fast` profiles use reasoning effort `low`, omit temperature, and allow 1,024 generated tokens, including reasoning. Both adapters use a fresh connection per attempt and reuse it between decisions.
+
+The published recordings below compare Jev with GPT-5.4 Nano, selected before measuring those cohorts. Astra has [request profiles and documented access checks](astra-comparison.md), but no recorded iOS benchmark.
 
 The reference cohort schedules three pairs in this order: Jev→baseline, baseline→Jev, Jev→baseline. Every attempt is retained. An error is an outcome, not permission to replace a run. Success requires the same exact final labels. The report only calculates paired task-time ratios when both runs verify and their starting state matches.
 
@@ -34,7 +36,7 @@ jev-ios comparison-report \
   --output runs/comparison-01/review.html
 ```
 
-Run the baseline on its own with `jev-ios run --engine baseline --min-probability 0`, followed by the ordinary target, scenario, and artifact options. `--baseline-model` selects another compatible structured-output model; the configured settings require temperature 0 and reasoning effort `none` support.
+Run the baseline on its own with `jev-ios run --engine baseline --min-probability 0`, followed by the ordinary target, scenario, and artifact options. `--baseline-model` selects a model and its request profile. `--baseline-max-output-tokens` overrides its generation limit from 1 to 8,192 tokens. Declare settings before collecting a cohort and retain them in the results. Unknown model IDs use temperature `0`, reasoning `none`, and a 128-token limit; verify compatibility before collecting a cohort.
 
 ## What stays equal
 
@@ -50,7 +52,7 @@ Task time includes observations, inference, input, waits, and final verification
 
 The report shows completion counts before speed ratios. Verified-run medians and per-pair ratios have separate labels. A short failed attempt is never treated as faster completion. Three pairs on one local fixture provide a smoke comparison, not a statistically powered benchmark across apps.
 
-Cost is estimated from catalog rates and reported input/output/cache usage. Missing usage makes the cost unknown, not zero. Provider routing, load, and automatic caching are not fully controlled; cached tokens are reported when available. The baseline's JSON prompt and Jev's choice questions expose equivalent information but are different provider formats. Those differences and the models' capabilities are part of this backend comparison.
+Cost is estimated from catalog rates and reported input, output, cache-read, and cache-write usage. Missing required usage makes the cost unknown. For the JSON baseline, the admission estimate reserves the selected generation limit and the higher of ordinary input or cache-write prices, without assuming a cache-read discount. Provider routing, load, and automatic caching are not fully controlled; cached tokens are reported when available. The baseline's JSON prompt and Jev's choice questions expose equivalent information but are different provider formats. Those differences and the models' capabilities are part of this backend comparison.
 
 Vercel documents [structured outputs](https://vercel.com/docs/ai-gateway/sdks-and-apis/openai-chat-completions/structured-outputs), [reasoning controls](https://vercel.com/docs/ai-gateway/sdks-and-apis/openai-chat-completions/reasoning), and [model discovery](https://vercel.com/docs/ai-gateway/models-and-providers). The live catalog, rather than a promotional claim, supplies the run's rate estimate.
 
@@ -84,10 +86,10 @@ The paired elapsed ratio is **1.7498×**, based on **one of six pairs**. Success
 
 The replay opens pair 6 because it is the sole pair with two verified outcomes; the other ten attempts remain available in the table and pair selector. Baseline attempts that reached ten actions had skipped Walking, saved the wrong preference, and restarted the flow before rate limiting. The verifier correctly rejected that intermediate saved screen. This does not establish what those attempts would have done without throttling.
 
-The public commit with the identical measured source tree is `a021dad2b73f98d7b39381a8f2f086f5479ec3fa`. The manifest records the app binary and scenario SHA-256 values, cohort timestamps, usage, individual request times, and recording fingerprints. All twelve actual first-observation element lists have the same SHA-256, in addition to the matching setup-state hashes. Subsequent source changes harden first-observation matching, interruption cleanup, incomplete-cohort exit status, and replay controls; the decision backends and Runner remain unchanged.
+The public commit with the identical measured source tree is `a021dad2b73f98d7b39381a8f2f086f5479ec3fa`. The manifest records the app binary and scenario SHA-256 values, cohort timestamps, usage, individual request times, and recording fingerprints. All twelve actual first-observation element lists have the same SHA-256, in addition to the matching setup-state hashes. Changes made before publishing this Nano cohort hardened first-observation matching, interruption cleanup, incomplete-cohort exit status, and replay controls; they did not change the measured decision backends or Runner.
 
 Both adapters received one excluded synthetic DONE preflight request before the first cohort; baseline parameter compatibility was checked separately before measurement. No warmup app run was discarded from these cohorts. Credentials, catalog fetches, reset, stable-screen checks, and recording setup are outside the task clock.
 
 All twelve recordings are included. Publication scales them to 660 pixels wide and re-encodes H.264 while preserving every frame's presentation timestamp within 1/600 second; no timeline acceleration or cuts are used. Container end durations can differ by up to 0.119 seconds because of final-frame duration metadata. Simulator recording can omit trailing static time—for example, the timeout recording ends before the request deadline. Playback therefore labels its recording clock separately from measured task time and holds the last available frame. Raw traces stay local; their hashes are published.
 
-The local suite passes 170 Python tests and 13 Node wrapper tests, including replay-controller mocks. Independent review covered model validation, matching, interruption preservation, cost accounting, publication filtering, and replay synchronization. This remains a small simulator smoke comparison, not a powered benchmark or a claim about other apps, models, devices, or provider accounts.
+At publication of the Nano results, the local suite passed 170 Python tests and 13 Node wrapper tests, including replay-controller mocks. Independent review covered model validation, matching, interruption preservation, cost accounting, publication filtering, and replay synchronization. This remains a small simulator smoke comparison, not a powered benchmark or a claim about other apps, models, devices, or provider accounts.

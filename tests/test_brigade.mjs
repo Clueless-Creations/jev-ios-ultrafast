@@ -127,3 +127,14 @@ test('baseline options are forwarded without inventing a confidence value', asyn
   for (const argument of ['--engine=baseline','--baseline-model=openai/gpt-5.4-nano','--min-probability=0','--budget-usd=0.1']) assert.ok(result.args.includes(argument));
   for (const extra of [{engine:'unknown'},{minProbability:NaN},{minProbability:-1},{budgetUsd:0},{baselineModel:''}]) await assert.rejects(runSimulatorGoal({...options,...extra}));
 });
+
+test('Astra generation limit reaches CLI and invalid limits never start a run', async (t) => {
+  const options = await fixture(t);
+  const result = await runSimulatorGoal({...options, engine:'baseline', baselineModel:'openai/gpt-6-astra', baselineMaxOutputTokens:2048, minProbability:0});
+  assert.ok(result.args.includes('--baseline-model=openai/gpt-6-astra'));
+  assert.ok(result.args.includes('--baseline-max-output-tokens=2048'));
+  for (const baselineMaxOutputTokens of [0, 8193, true, 1.5, '1024']) {
+    await assert.rejects(runSimulatorGoal({...options, engine:'baseline', baselineMaxOutputTokens}));
+  }
+  await assert.rejects(runSimulatorGoal({...options, engine:'jev', baselineMaxOutputTokens:1024}));
+});

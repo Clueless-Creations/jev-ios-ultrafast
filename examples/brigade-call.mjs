@@ -13,6 +13,7 @@ export async function runSimulatorGoal({
   scenarioPath,
   engine = "jev",
   baselineModel,
+  baselineMaxOutputTokens,
   minProbability,
   budgetUsd,
   allowLabels = [],
@@ -40,6 +41,7 @@ export async function runSimulatorGoal({
   if (!validLabels(allowLabels, false)) throw new Error("allowLabels must contain at most 30 exact labels, at most 300 characters each");
   if (!["jev", "baseline"].includes(engine)) throw new Error("engine must be jev or baseline");
   if (baselineModel !== undefined && !validString(baselineModel, 200)) throw new Error("baselineModel must be nonempty");
+  if (baselineMaxOutputTokens !== undefined && (engine !== "baseline" || !Number.isInteger(baselineMaxOutputTokens) || baselineMaxOutputTokens < 1 || baselineMaxOutputTokens > 8192)) throw new Error("baselineMaxOutputTokens requires baseline and must be an integer from 1 to 8192");
   if (minProbability !== undefined && (!Number.isFinite(minProbability) || minProbability < 0 || minProbability > 1)) throw new Error("minProbability must be between 0 and 1");
   if (budgetUsd !== undefined && (!Number.isFinite(budgetUsd) || budgetUsd <= 0)) throw new Error("budgetUsd must be positive");
   if (vercelProject !== undefined && !validString(vercelProject, 300)) throw new Error("vercelProject must be nonempty");
@@ -61,6 +63,7 @@ export async function runSimulatorGoal({
   option("--bundle-id", bundleId);
   option("--engine", engine);
   if (baselineModel !== undefined) option("--baseline-model", baselineModel);
+  if (baselineMaxOutputTokens !== undefined) option("--baseline-max-output-tokens", baselineMaxOutputTokens);
   if (minProbability !== undefined) option("--min-probability", minProbability);
   if (budgetUsd !== undefined) option("--budget-usd", budgetUsd);
   if (scenarioPath !== undefined) option("--scenario", scenarioPath);

@@ -86,7 +86,7 @@ def _run(raw):
         if not isinstance(item, dict):
             raise ValueError("Comparison usage must contain objects")
         normalized["usage"].append({key: _number(item[key], "usage tokens", integer=True)
-                                    for key in ("inputTokens", "outputTokens", "totalTokens", "cachedInputTokens", "cacheReadInputTokens") if key in item})
+                                    for key in ("inputTokens", "outputTokens", "totalTokens", "cachedInputTokens", "cacheReadInputTokens", "cacheWriteInputTokens", "reasoningOutputTokens") if key in item})
     setup_status = raw.get("setup_status")
     if not isinstance(setup_status, str) or setup_status not in {"ready", "failed", "error", "not_started"}:
         raise ValueError("Comparison setup status is invalid")
@@ -157,7 +157,8 @@ def _manifest(raw):
         if count < 1 or any(run["pair"] > count for run in public["runs"]):
             raise ValueError("Comparison attempts must fit within the scheduled pairs")
     if "baseline_request" in settings:
-        public["settings"]["baseline_request"] = _metadata(settings["baseline_request"], {"reasoning_effort"}, {"temperature", "max_output_tokens"})
+        public["settings"]["baseline_request"] = _metadata(settings["baseline_request"],
+            {"reasoning_effort", "profile", "model", "temperature_policy", "output_token_policy"}, {"temperature", "max_output_tokens"})
     for key in ("allow_scroll",):
         if key in scenario:
             if type(scenario[key]) is not bool:
@@ -185,7 +186,7 @@ def _manifest(raw):
     for backend in ("jev", "baseline"):
         if backend in pricing:
             public["pricing"][backend] = _metadata(pricing[backend], {"model", "source", "retrieved_at", "currency", "note"},
-                {"input", "output", "cached_input", "input_per_token", "output_per_token", "cached_input_per_token", "context_window", "maximum_output_tokens", "input_rate_per_million", "output_rate_per_million", "cache_read_rate_per_million", "reserved_usd", "max_calls", "context"})
+                {"input", "output", "cached_input", "input_per_token", "output_per_token", "cached_input_per_token", "context_window", "maximum_output_tokens", "input_rate_per_million", "output_rate_per_million", "cache_read_rate_per_million", "cache_write_rate_per_million", "reserved_usd", "max_calls", "context"})
     for key in ("created_at", "source_revision"):
         if key in raw:
             public[key] = _text(raw[key], key, 200)
@@ -288,6 +289,7 @@ set('goal',data.scenario.goal);set('jev-total',sec(data.paired_median_elapsed_ms
 set('verified',summary.backends.jev.verified+'/'+summary.backends.jev.attempted+' · '+summary.backends.baseline.verified+'/'+summary.backends.baseline.attempted);
 set('summary-note',summary.paired_verified_count+' pair'+(summary.paired_verified_count===1?'':'s')+' verified by both engines contribute to the elapsed-time comparison. '+data.runs.length+' of '+(2*(data.settings.pairs??Math.max(...data.runs.map(r=>r.pair))))+' scheduled attempts recorded. Failed, incomplete, or mismatched pairs do not become fast winners.');
 set('shared-settings','Scenario: '+data.scenario.name+' · '+data.scenario.max_steps+' maximum steps · '+((data.scenario.allow_scroll??data.settings.allow_scroll)?'scrolling allowed':'no scrolling')+'. Shared confidence gate: '+(data.settings.confidence_gate??data.settings.min_probability??'not recorded')+'.');
+if(data.settings.baseline_request){const request=data.settings.baseline_request;set('shared-settings',$('shared-settings').textContent+' Baseline reasoning: '+request.reasoning_effort+'; temperature: '+(request.temperature===null?'omitted':request.temperature)+'; generation cap: '+request.max_output_tokens+' tokens including reasoning.');}
 set('timing-boundary',data.settings.timing_boundary||'Timing begins with the runner and ends at its final result. Setup and app reset are outside that boundary.');
 set('inference-summary','Recorded-call median latency — Jev: '+ms(summary.backends.jev.median_request_ms)+'; baseline: '+ms(summary.backends.baseline.median_request_ms)+'. Requests without recorded timing: Jev '+(summary.backends.jev.requests_without_timing??0)+', baseline '+(summary.backends.baseline.requests_without_timing??0)+'.');
 const element=(tag,className,text)=>{const e=document.createElement(tag);if(className)e.className=className;if(text!==undefined)e.textContent=text;return e;};

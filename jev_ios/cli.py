@@ -12,10 +12,11 @@ import urllib.request
 
 from .device import AxeDevice, DeviceError
 from .model import JevModel, ModelError, ModelOptions
+from .model_profiles import DEFAULT_BASELINE_MODEL, MAX_GENERATION_TOKENS, resolve_profile
 from .runner import Runner
 
 
-BASELINE_MODEL = "openai/gpt-5.4-nano"
+BASELINE_MODEL = DEFAULT_BASELINE_MODEL
 
 
 def model_catalog():
@@ -23,7 +24,7 @@ def model_catalog():
         return json.load(response)["data"]
 
 
-def pricing_bound(max_steps, text_count, budget, *, engine="jev", model_id=None, models=None):
+def pricing_bound(max_steps, text_count, budget, *, engine="jev", model_id=None, models=None, max_output_tokens=None):
     """Reserve a full context per question, not an optimistic observed token count."""
     models = model_catalog() if models is None else models
     model_id = "typesafe-ai/jev" if engine == "jev" else model_id or BASELINE_MODEL
@@ -35,6 +36,11 @@ def pricing_bound(max_steps, text_count, budget, *, engine="jev", model_id=None,
     context = int(model["context_window"])
     if not math.isfinite(rate) or rate < 0 or not math.isfinite(output) or output < 0 or not 1 <= context <= 2_000_000:
         raise ValueError("Unknown model pricing; cannot establish test budget")
+    cache = float(model["pricing"].get("input_cache_read", rate))
+    cache_write = float(model["pricing"].get("input_cache_write", rate))
+    if not math.isfinite(cache) or not 0 <= cache <= rate or not math.isfinite(cache_write) or cache_write < 0:
+        raise ValueError("Unknown cached-input pricing")
+    profile = resolve_profile(model_id, max_output_tokens=max_output_tokens) if engine == "baseline" else None
     # At most 120 visible elements; typing adds a value question per field.
     questions = 123 if text_count else 2
     if engine == "jev":
@@ -43,16 +49,20 @@ def pricing_bound(max_steps, text_count, budget, *, engine="jev", model_id=None,
         bound = max_steps * questions * context * rate
     else:
         # The complete request is capped at 24,000 UTF-8 bytes. Reserve one
-        # token per byte plus framing, and the full 128-token output ceiling.
-        bound = max_steps * (24_512 * rate + 128 * output)
+        # token per byte plus framing and the complete generation ceiling,
+        # including reasoning. Cache writes may cost more than ordinary input.
+        bound = max_steps * (24_512 * max(rate, cache_write) + profile.max_output_tokens * output)
     if not math.isfinite(budget) or budget <= 0 or bound > budget:
         raise ValueError(f"Conservative model budget ${bound:.6f} exceeds --budget-usd ${budget:.6f}; reduce steps or disable typing")
-    cache = float(model["pricing"].get("input_cache_read", rate))
-    if not math.isfinite(cache) or not 0 <= cache <= rate:
-        raise ValueError("Unknown cached-input pricing")
-    return {"model": model_id, "input_rate_per_million": rate * 1_000_000,
+    result = {"model": model_id, "input_rate_per_million": rate * 1_000_000,
             "output_rate_per_million": output * 1_000_000, "cache_read_rate_per_million": cache * 1_000_000,
             "reserved_usd": round(bound, 6), "max_calls": max_steps, "question_context_tokens": context}
+    if "input_cache_write" in model["pricing"]:
+        result["cache_write_rate_per_million"] = cache_write * 1_000_000
+    if profile:
+        result["maximum_output_tokens"] = profile.max_output_tokens
+        result["baseline_request"] = profile.metadata()
+    return result
 
 
 def temporary_vercel_token(project):
@@ -69,6 +79,16 @@ def temporary_vercel_token(project):
         return token
     except (ValueError, KeyError, TypeError):
         raise ValueError("Vercel returned an unrecognized token response") from None
+
+
+def generation_limit(value):
+    try:
+        limit = int(value)
+        if not 1 <= limit <= MAX_GENERATION_TOKENS:
+            raise ValueError()
+        return limit
+    except (TypeError, ValueError):
+        raise argparse.ArgumentTypeError(f"must be an integer from 1 to {MAX_GENERATION_TOKENS}") from None
 
 
 def parser():
@@ -90,6 +110,8 @@ def parser():
     compare.add_argument("--output-dir", required=True, type=Path, help="New directory for all attempts and manifest")
     compare.add_argument("--pairs", type=int, choices=range(1, 6), default=3)
     compare.add_argument("--baseline-model", default=BASELINE_MODEL)
+    compare.add_argument("--baseline-max-output-tokens", type=generation_limit,
+                         metavar="TOKENS", help="Total generation cap including reasoning; default Nano 128, Astra 1024")
     compare.add_argument("--record-video", action=argparse.BooleanOptionalAction, default=True)
     compare.add_argument("--budget-usd", type=float, default=1.0, help="Total conservative admission budget")
     compare.add_argument("--vercel-project")
@@ -105,6 +127,8 @@ def parser():
         if command == "run":
             q.add_argument("--engine", choices=("jev", "baseline"), default="jev")
             q.add_argument("--baseline-model", default=BASELINE_MODEL)
+            q.add_argument("--baseline-max-output-tokens", type=generation_limit,
+                           metavar="TOKENS", help="Total generation cap including reasoning; default Nano 128, Astra 1024")
             q.add_argument("--scenario", type=Path, help="Portable, versioned JSON scenario")
             q.add_argument("--goal")
             q.add_argument("--expect-label", action="append", help="Exact visible label; repeat to require all")
@@ -184,7 +208,8 @@ def main(argv=None):
                 raise ValueError("Comparison output directory must not already exist")
             models = model_catalog()
             pricing = {engine: pricing_bound(scenario.max_steps, len(scenario.text_values), args.budget_usd,
-                       engine=engine, model_id=args.baseline_model, models=models) for engine in ("jev", "baseline")}
+                       engine=engine, model_id=args.baseline_model, models=models,
+                       max_output_tokens=args.baseline_max_output_tokens) for engine in ("jev", "baseline")}
             bound = args.pairs * sum(p["reserved_usd"] for p in pricing.values())
             if bound > args.budget_usd:
                 raise ValueError(f"Conservative comparison budget ${bound:.6f} exceeds --budget-usd")
@@ -192,6 +217,7 @@ def main(argv=None):
             key = temporary_vercel_token(args.vercel_project) if args.vercel_project else None
             manifest = run_comparison(scenario=scenario, udid=args.udid, bundle_id=args.bundle_id,
                 output_dir=args.output_dir, api_key=key, pricing=pricing, baseline_model=args.baseline_model,
+                baseline_max_output_tokens=args.baseline_max_output_tokens,
                 pairs=args.pairs, start_labels=args.start_label, record_video=args.record_video, emit=emit)
             report_path = args.output_dir / "comparison.html"
             write_comparison_report(report_path, manifest, media_root=args.output_dir)
@@ -222,6 +248,8 @@ def main(argv=None):
         scenario = scenario_from_args(args) if args.command == "run" else None
         if scenario and args.engine == "baseline" and scenario.min_probability != 0:
             raise ValueError("The baseline does not report confidence; explicitly set --min-probability 0")
+        if scenario and args.engine != "baseline" and args.baseline_max_output_tokens is not None:
+            raise ValueError("--baseline-max-output-tokens requires --engine baseline")
         # Validate all artifact destinations before launching or making a model call.
         if scenario:
             paths = [p.resolve() for p in (args.trace, args.screenshot, args.report, args.record_video) if p]
@@ -240,7 +268,7 @@ def main(argv=None):
             handle = args.trace.open("x", encoding="utf-8")
             os.chmod(args.trace, 0o600)
         bound = pricing_bound(scenario.max_steps, len(scenario.text_values), args.budget_usd,
-                              engine=args.engine, model_id=args.baseline_model)
+                              engine=args.engine, model_id=args.baseline_model, max_output_tokens=args.baseline_max_output_tokens)
         emit({"type": "budget", **bound})
         key = temporary_vercel_token(args.vercel_project) if args.vercel_project else None
         if args.record_video:
@@ -248,10 +276,12 @@ def main(argv=None):
             recorder.start()
         video_offset_ms = (time.perf_counter() - recorder.started_at) * 1000 if recorder else 0
         emit({"type": "session", "scenario": scenario.name, "engine": args.engine, "model": bound["model"],
-              "video_offset_ms": round(video_offset_ms, 1)})
+              "video_offset_ms": round(video_offset_ms, 1),
+              **({"baseline_request": bound["baseline_request"]} if args.engine == "baseline" else {})})
         from .baseline import ChatCompletionModel
         selected_model = JevModel(ModelOptions(max_calls=scenario.max_steps), api_key=key) if args.engine == "jev" else ChatCompletionModel(
-            args.baseline_model, ModelOptions(max_calls=scenario.max_steps), api_key=key)
+            args.baseline_model, ModelOptions(max_calls=scenario.max_steps), api_key=key,
+            max_output_tokens=args.baseline_max_output_tokens)
         with selected_model as model:
             result = Runner(device, model, emit=emit, **scenario.to_runner_kwargs()).run(scenario.goal, scenario.expect_labels)
         if recorder:

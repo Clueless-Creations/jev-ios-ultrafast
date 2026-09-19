@@ -76,6 +76,18 @@ class BaselineRequestTests(unittest.TestCase):
         request, _ = build_request(MODEL, {}, ACTIONS, TAPS, {}, {}, reasoning_effort=None)
         self.assertNotIn("reasoning_effort", request)
 
+    def test_astra_requests_omit_temperature_and_reserve_reasoning_tokens(self):
+        for model in ("openai/gpt-6-astra", "openai/gpt-6-astra-fast"):
+            with self.subTest(model=model):
+                request, _ = build_request(model, {}, ACTIONS, TAPS, {}, {})
+                self.assertEqual(request["model"], model)
+                self.assertNotIn("temperature", request)
+                self.assertEqual(request["reasoning_effort"], "low")
+                self.assertEqual(request["max_tokens"], 1024)
+                self.assertTrue(request["response_format"]["json_schema"]["strict"])
+        request, _ = build_request("openai/gpt-6-astra", {}, ACTIONS, TAPS, {}, {}, max_output_tokens=2048)
+        self.assertEqual(request["max_tokens"], 2048)
+
     def test_invalid_model_and_effort_rejected_without_network(self):
         for model in (None, "", "model", "provider/model\nsecret", "https://different-host.test/model", "provider/" + "x" * 201):
             with self.subTest(model=model), self.assertRaises(ValueError):
@@ -160,10 +172,40 @@ class BaselineDecisionTests(unittest.TestCase):
             self.assertNotIn("cacheReadInputTokens", result["usage"])
             self.assertTrue(all(type(value) is int and value >= 0 for value in result["usage"].values()))
 
+    def test_reasoning_and_cache_write_usage_are_subsets_not_extra_output(self):
+        response = completion()
+        response["usage"]["prompt_tokens_details"]["cache_write_tokens"] = 20
+        response["usage"]["completion_tokens_details"] = {"reasoning_tokens": 16}
+        usage = self.parse(response)["usage"]
+        self.assertEqual(usage["cacheWriteInputTokens"], 20)
+        self.assertEqual(usage["reasoningOutputTokens"], 16)
+        self.assertEqual(usage["outputTokens"], 24)
+        for invalid in (True, -1, 25):
+            response["usage"]["completion_tokens_details"]["reasoning_tokens"] = invalid
+            response["usage"]["prompt_tokens_details"]["cache_write_tokens"] = invalid
+            usage = self.parse(response)["usage"]
+            self.assertNotIn("reasoningOutputTokens", usage)
+            self.assertNotIn("cacheWriteInputTokens", usage)
+
 
 class BaselineClientTests(unittest.TestCase):
     def decide(self, model, state=None):
         return model.decide(state if state is not None else {}, ACTIONS, TAPS, FIELDS, TEXTS)
+
+    def test_astra_transport_uses_profile_without_changing_timeout_or_model_identity(self):
+        response = completion()
+        response["model"] = "openai/gpt-6-astra-fast"
+        connection = connection_for(response)
+        with patch("jev_ios.baseline.http.client.HTTPSConnection", return_value=connection) as constructor:
+            model = ChatCompletionModel(response["model"], api_key="fixture-key", max_output_tokens=2048)
+            result = self.decide(model)
+        constructor.assert_called_once_with(HOST, timeout=10.0)
+        request = json.loads(connection.request.call_args.kwargs["body"])
+        self.assertEqual(request["model"], response["model"])
+        self.assertEqual(request["max_tokens"], 2048)
+        self.assertEqual(request["reasoning_effort"], "low")
+        self.assertNotIn("temperature", request)
+        self.assertEqual(result["model"], response["model"])
 
     def test_fixed_host_persistent_connection_and_call_limit(self):
         connection = connection_for()

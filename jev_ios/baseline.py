@@ -8,7 +8,6 @@ from __future__ import annotations
 import http.client
 import json
 import os
-import re
 import time
 from typing import Any
 
@@ -16,6 +15,7 @@ from .model import (
     HOST, MAX_RESPONSE_BYTES, ModelError, ModelOptions, _RequestDeadline,
     build_questions,
 )
+from .model_profiles import AUTO_REASONING, resolve_profile
 
 
 ENDPOINT = "/v1/chat/completions"
@@ -53,9 +53,10 @@ def build_request(
     tap_targets: dict[str, str],
     type_targets: dict[str, str],
     text_values: dict[str, str],
-    *, reasoning_effort: str | None = "none",
+    *, reasoning_effort=AUTO_REASONING, max_output_tokens=None,
 ) -> tuple[dict[str, Any], dict[str, dict[str, str]]]:
     """Keep Jev's offered choices, using ordinary structured JSON generation."""
+    profile = resolve_profile(model, reasoning_effort=reasoning_effort, max_output_tokens=max_output_tokens)
     if not isinstance(state, dict):
         raise ModelError("Baseline state must be a JSON object.")
     # Reuse the Jev choice filtering so absent targets remove the same actions.
@@ -91,12 +92,13 @@ def build_request(
             "type": "json_schema",
             "json_schema": {"name": "simulator_action", "strict": True, "schema": schema},
         },
-        "max_tokens": MAX_OUTPUT_TOKENS,
-        "temperature": 0,
+        "max_tokens": profile.max_output_tokens,
         "stream": False,
     }
-    if reasoning_effort is not None:
-        request["reasoning_effort"] = reasoning_effort
+    if profile.temperature is not None:
+        request["temperature"] = profile.temperature
+    if profile.reasoning_effort is not None:
+        request["reasoning_effort"] = profile.reasoning_effort
     return request, space
 
 
@@ -161,19 +163,24 @@ def parse_decision(response: Any, space: dict[str, dict[str, str]], *, model: st
         cached = details.get("cached_tokens") if isinstance(details, dict) else None
         if type(cached) is int and cached >= 0 and cached <= result["usage"].get("inputTokens", -1):
             result["usage"]["cacheReadInputTokens"] = cached
+        written = details.get("cache_write_tokens") if isinstance(details, dict) else None
+        if type(written) is int and 0 <= written <= result["usage"].get("inputTokens", -1) - result["usage"].get("cacheReadInputTokens", 0):
+            result["usage"]["cacheWriteInputTokens"] = written
+        output_details = usage.get("completion_tokens_details")
+        reasoning = output_details.get("reasoning_tokens") if isinstance(output_details, dict) else None
+        if type(reasoning) is int and 0 <= reasoning <= result["usage"].get("outputTokens", -1):
+            result["usage"]["reasoningOutputTokens"] = reasoning
     return result
 
 
 class ChatCompletionModel:
     """Persistent fixed-host chat client; each attempted call consumes budget."""
 
-    def __init__(self, model: str, options: ModelOptions | None = None, *, api_key: str | None = None, reasoning_effort: str | None = "none"):
-        if not isinstance(model, str) or re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:-]*/[A-Za-z0-9][A-Za-z0-9._:/-]*", model) is None or len(model) > 200:
-            raise ValueError("Baseline model must be a provider/model identifier.")
+    def __init__(self, model: str, options: ModelOptions | None = None, *, api_key: str | None = None,
+                 reasoning_effort=AUTO_REASONING, max_output_tokens=None):
+        self.profile = resolve_profile(model, reasoning_effort=reasoning_effort, max_output_tokens=max_output_tokens)
         self.model = model
-        if reasoning_effort not in (None, "none", "minimal", "low", "medium", "high", "xhigh"):
-            raise ValueError("Unsupported baseline reasoning effort.")
-        self.reasoning_effort = reasoning_effort
+        self.reasoning_effort = self.profile.reasoning_effort
         self.options = options or ModelOptions()
         self._api_key = api_key
         self._connection: http.client.HTTPSConnection | None = None
@@ -182,7 +189,8 @@ class ChatCompletionModel:
     def decide(self, state, actions, tap_targets, type_targets, text_values) -> dict[str, Any]:
         if self.calls >= self.options.max_calls:
             raise ModelError("Baseline model-call budget reached; nothing executed.")
-        request, space = build_request(self.model, state, actions, tap_targets, type_targets, text_values, reasoning_effort=self.reasoning_effort)
+        request, space = build_request(self.model, state, actions, tap_targets, type_targets, text_values,
+                                       reasoning_effort=self.reasoning_effort, max_output_tokens=self.profile.max_output_tokens)
         try:
             payload = json.dumps(request, ensure_ascii=False, allow_nan=False, separators=(",", ":")).encode("utf-8")
         except (TypeError, ValueError, UnicodeError):

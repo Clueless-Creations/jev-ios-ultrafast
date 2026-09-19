@@ -1,0 +1,51 @@
+{
+  "schema": "jev-ios/preflight/v1",
+  "purpose": "Excluded synthetic transport checks; no simulator benchmark was started.",
+  "date": "2026-09-19",
+  "simulator_actions": 0,
+  "benchmark_eligible": false,
+  "requests": [
+    {
+      "model": "openai/gpt-6-astra",
+      "timestamp": "2026-09-19T22:05:35.267011+00:00",
+      "http_status": 403,
+      "request_profile": {
+        "profile": "astra-standard",
+        "model": "openai/gpt-6-astra",
+        "reasoning_effort": "low",
+        "temperature": null,
+        "temperature_policy": "omitted",
+        "max_output_tokens": 1024,
+        "output_token_policy": "Total generation ceiling, including reasoning tokens"
+      },
+      "outcome": "access_denied",
+      "usage": null
+    },
+    {
+      "model": "openai/gpt-6-astra-fast",
+      "timestamp": "2026-09-19T22:05:36.132521+00:00",
+      "http_status": 403,
+      "request_profile": {
+        "profile": "astra-fast",
+        "model": "openai/gpt-6-astra-fast",
+        "reasoning_effort": "low",
+        "temperature": null,
+        "temperature_policy": "omitted",
+        "max_output_tokens": 1024,
+        "output_token_policy": "Total generation ceiling, including reasoning tokens"
+      },
+      "outcome": "access_denied",
+      "usage": null
+    }
+  ],
+  "diagnostic": {
+    "additional_requests": 1,
+    "model": "openai/gpt-6-astra",
+    "http_status": 403,
+    "provider_error_type": "no_providers_available",
+    "reason": "The provider requires paid Gateway credits for this model; the tested account used the free tier.",
+    "usage": null
+  },
+  "interpretation": "HTTP 403 is an account access result, not model latency, model quality, or iOS task performance. No ranking or task speed is available for either Astra profile.",
+  "billing": "No credits were purchased. Provider usage was unavailable; no zero-cost billing claim is made."
+}

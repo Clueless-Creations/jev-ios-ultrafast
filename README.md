@@ -25,6 +25,8 @@ The baseline took 1.75× as long in that one pair. Four baseline attempts hit HT
 
 [All results and measurement limits](docs/comparison.md#recorded-results--september-19-2026) · [Machine-readable results](docs/media/comparison.json) · [Single-run replay with decisions](https://clueless-creations.github.io/jev-ios-ultrafast/media/showcase.html)
 
+Astra Standard and Fast request profiles are implemented. Both returned HTTP 403 during access checks; the tested Gateway account needs paid credits. No Astra iOS benchmark has run. See the [Astra setup and access results](docs/astra-comparison.md).
+
 ## What you can run
 
 This repo includes the Python CLI, the native Daybreak fixture, portable JSON scenarios, and a Node wrapper for calling the runner from Brigade. It uses [TypeSafe's Jev](https://docs.typesafe.ai/introduction) through Vercel AI Gateway and [AXe](https://github.com/cameroncooke/AXe) for simulator input. The Python package has no runtime dependencies and needs no web deployment.
@@ -88,7 +90,7 @@ jev-ios compare \
 
 Open `runs/comparison-01/comparison.html` for synchronized normal-speed replays, every attempt, completion rates, task time, model latency, and estimated cost. The command restarts the app process before each attempt and checks the starting screen. Another app may need a fixture-data reset as well.
 
-The baseline is GPT-5.4 Nano with reasoning disabled and a strict JSON action schema. `--baseline-model` accepts another compatible model; its settings and results belong in a separate comparison. Read the [comparison protocol](docs/comparison.md) before changing models or apps.
+The default baseline is GPT-5.4 Nano with reasoning disabled and a strict JSON action schema. `--baseline-model` also selects the [Astra Standard and Fast profiles](docs/astra-comparison.md), which use low reasoning and a larger generation limit. Each model and profile belongs in a separate comparison. Read the [comparison protocol](docs/comparison.md) before changing models or apps.
 
 ## Run another app
 
