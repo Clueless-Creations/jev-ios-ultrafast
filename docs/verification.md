@@ -1,5 +1,7 @@
 # Recorded verification · September 19, 2026
 
+The later [matched comparison](comparison.md#recorded-results--september-19-2026) publishes all twelve Jev and GPT-5.4 Nano attempts with paired replay. The single-run showcase below is earlier evidence and is not used to calculate the comparison.
+
 The final Daybreak showcase completed through `examples/brigade-call.mjs` against a visible iOS 26.2 Simulator. Hosted Jev chose seven actions from the accessibility tree. No action allowlist or scripted tap sequence was used.
 
 | Measurement | Final showcase |

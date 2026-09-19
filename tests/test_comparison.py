@@ -36,6 +36,7 @@ class FakeDevice:
     def __init__(self, udid, bundle_id):
         self.pid, self.completed = len(self.instances) + 1, False
         self.commands, self.launches = [], 0
+        self.observations = 0
         self.plan = self.plans.pop(0) if self.plans else None
         self.instances.append(self)
 
@@ -49,7 +50,9 @@ class FakeDevice:
         self.launches += 1
 
     def observe(self):
-        return FakeSnapshot(self.pid, self.completed)
+        self.observations += 1
+        label = "Changed after setup" if self.plan == "change_after_setup" and self.observations > 2 else "Home"
+        return FakeSnapshot(self.pid, self.completed, label=label)
 
     def execute(self, snapshot, decision, text_values):
         self.completed = True
@@ -92,6 +95,8 @@ class FakeRecorder:
 
     def stop(self):
         self.stopped = True
+        if isinstance(self.fail_stop, BaseException):
+            raise self.fail_stop
         if self.fail_stop:
             raise ValueError("private recorder response")
 
@@ -175,6 +180,18 @@ class ComparisonTests(unittest.TestCase):
         self.assertFalse(result["summary"]["pairs"][0]["comparable"])
         self.assertEqual(len(FakeModel.instances), 1)
 
+    def test_actual_first_runner_snapshot_must_match_setup_before_inference(self):
+        FakeDevice.plans = ["change_after_setup"]
+        result = self.run_fixture(pairs=1)
+        first = result["runs"][0]
+        self.assertEqual(first["reason"], "initial_state_changed")
+        self.assertEqual(first["setup_status"], "failed")
+        self.assertFalse(first["timing_valid"])
+        self.assertNotEqual(first["initial_state_hash"], first["setup_state_hash"])
+        self.assertEqual(FakeModel.instances[0].calls, 0)
+        self.assertFalse(FakeDevice.instances[0].completed)
+        self.assertIsNone(result["summary"]["pairs"][0]["baseline_over_jev"])
+
     def test_unknown_error_detail_is_not_persisted(self):
         FakeModel.plans = [RuntimeError("private-token-in-error")]
         self.run_fixture(pairs=1)
@@ -215,6 +232,20 @@ class ComparisonTests(unittest.TestCase):
             self.assertIsNone(run["video"])
             self.assertIn("artifact_error", run)
         self.assertNotIn("private recorder response", (self.output / "comparison.json").read_text())
+
+    def test_teardown_interrupt_preserves_completed_attempt_and_stops_schedule(self):
+        FakeRecorder.fail_stop = KeyboardInterrupt()
+        result = self.run_fixture(record_video=True)
+        self.assertEqual(len(result["runs"]), 1)
+        first = result["runs"][0]
+        self.assertEqual(first["status"], "verified")
+        self.assertTrue(first["timing_valid"])
+        self.assertIsNone(first["video"])
+        self.assertEqual(first["artifact_error"], "Recording finalization interrupted; video omitted")
+        self.assertEqual(len(FakeDevice.instances), 1)
+        self.assertEqual(len(json.loads((self.output / "comparison.json").read_text())["runs"]), 1)
+        trace = [json.loads(line) for line in (self.output / first["trace"]).read_text().splitlines()]
+        self.assertEqual([event["status"] for event in trace if event["type"] == "result"], ["verified"])
 
     def test_existing_output_directory_never_replaced_or_runs_started(self):
         self.output.mkdir()
@@ -285,6 +316,15 @@ class SummaryTests(unittest.TestCase):
         self.assertIsNone(_cost_stats(usage, 2, pricing)["estimated_cost_usd"])
         self.assertIsNone(_cost_stats(usage, 1, {"input_rate_per_million": 2, "output_rate_per_million": 4})["estimated_cost_usd"])
         self.assertIsNone(_cost_stats([{"inputTokens": 10}], 1, pricing)["estimated_cost_usd"])
+
+    def test_start_change_rejected_before_inference_invalidates_other_pairs(self):
+        rows = [self.run_row("jev", 1000), self.run_row("baseline", 2000),
+                self.run_row("jev", None, pair=2, status="error", setup_status="failed",
+                             timing_valid=False, reason="initial_state_changed")]
+        summary = summarize_comparison({"runs": rows})
+        self.assertFalse(summary["initial_state_consistent"])
+        self.assertEqual(summary["paired_verified_count"], 0)
+        self.assertIsNone(summary["median_paired_speedup"])
 
     def test_semantic_hash_excludes_pid_but_keeps_control_geometry_and_labels(self):
         one, two = FakeSnapshot(1), FakeSnapshot(2)

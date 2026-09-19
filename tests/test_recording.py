@@ -141,6 +141,20 @@ class RecordingTests(unittest.TestCase):
         self.assertTrue(self.stream.closed)
         self.assertIsNone(self.recorder.process)
 
+    def test_stop_interrupt_kills_reaps_and_restores_signal_handlers(self):
+        self.recorder.start()
+        self.process.wait.side_effect = [KeyboardInterrupt(), 0]
+        original_handlers = {signum: signal.getsignal(signum) for signum in (signal.SIGINT, signal.SIGTERM)}
+        with self.assertRaises(KeyboardInterrupt):
+            self.recorder.stop()
+        self.process.kill.assert_called_once()
+        self.assertEqual(self.process.wait.call_args_list, [call(timeout=15), call(timeout=3)])
+        self.assertIsNone(self.recorder.process)
+        self.assertTrue(self.stream.closed)
+        self.assertEqual({signum: signal.getsignal(signum) for signum in original_handlers}, original_handlers)
+        with self.assertRaisesRegex(ValueError, "interrupted"):
+            self.recorder.stop()
+
     def test_failed_reap_is_bounded_and_still_cleans_up(self):
         self.recorder.start()
         self.process.wait.side_effect = [subprocess.TimeoutExpired("fixture", 15), subprocess.TimeoutExpired("fixture", 3)]

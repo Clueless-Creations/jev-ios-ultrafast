@@ -85,6 +85,30 @@ class VideoRecorder:
                     raise ValueError("Recording could not be finalized") from None
                 if status != 0:
                     raise ValueError("Simulator recorder exited unsuccessfully; capture is incomplete")
+            except KeyboardInterrupt:
+                # A host SIGTERM handler may also raise KeyboardInterrupt. Kill
+                # and reap before dropping ownership of the recorder process.
+                # Defer additional interruption signals only during this bounded
+                # cleanup; the original interruption is re-raised below.
+                previous_handlers = {}
+                if threading.current_thread() is threading.main_thread():
+                    for signum in (signal.SIGINT, signal.SIGTERM):
+                        previous_handlers[signum] = signal.getsignal(signum)
+                        signal.signal(signum, lambda *_args: None)
+                try:
+                    try:
+                        process.kill()
+                    except OSError:
+                        pass
+                    try:
+                        process.wait(timeout=3)
+                    except (OSError, subprocess.TimeoutExpired):
+                        pass
+                finally:
+                    for signum, handler in previous_handlers.items():
+                        signal.signal(signum, handler)
+                self._failure = "Recording finalization interrupted"
+                raise
             except OSError:
                 if not kill_attempted:
                     try:

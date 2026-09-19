@@ -196,7 +196,8 @@ def main(argv=None):
             report_path = args.output_dir / "comparison.html"
             write_comparison_report(report_path, manifest, media_root=args.output_dir)
             emit({"type": "artifact", "report": str(report_path), "manifest": str(args.output_dir / "comparison.json")})
-            return 0 if all(r["status"] == "verified" for r in manifest["runs"]) else 2
+            complete = len(manifest["runs"]) == args.pairs * 2
+            return 0 if complete and all(r["status"] == "verified" for r in manifest["runs"]) else 2
         if args.command == "report":
             if args.trace.stat().st_size > 16_000_000:
                 raise ValueError("Trace exceeds 16 MB")

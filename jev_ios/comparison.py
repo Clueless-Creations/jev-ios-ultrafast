@@ -21,6 +21,32 @@ from .scenario import Scenario
 SCHEMA = "jev-ios/comparison/v1"
 
 
+class _InitialStateChanged(DeviceError):
+    pass
+
+
+class _FirstObservationDevice:
+    """Validate the actual runner input, after recorder and model setup."""
+    def __init__(self, device, initial, row, record):
+        self._device, self._initial, self._row, self._record = device, initial, row, record
+        self._checked = False
+
+    def observe(self):
+        snapshot = self._device.observe()
+        if not self._checked:
+            self._checked = True
+            digest = semantic_state_hash(snapshot)
+            self._row["initial_state_hash"] = digest
+            self._record({"type": "starting_state", "initial_state_hash": digest,
+                          "setup_state_hash": self._row["setup_state_hash"]})
+            if snapshot.pid != self._initial.pid or digest != self._row["setup_state_hash"]:
+                raise _InitialStateChanged("Starting screen changed after setup; no model request made")
+        return snapshot
+
+    def __getattr__(self, name):
+        return getattr(self._device, name)
+
+
 def semantic_state_hash(snapshot):
     """Compare initial controls without process-specific fingerprint metadata."""
     def stable(value):
@@ -90,7 +116,8 @@ def summarize_comparison(manifest):
     initial_hashes = {run["initial_state_hash"] for run in runs
                       if run.get("setup_status") == "ready" and isinstance(run.get("initial_state_hash"), str)
                       and run["initial_state_hash"]}
-    initial_state_consistent = len(initial_hashes) == 1
+    initial_state_consistent = len(initial_hashes) == 1 and not any(
+        run.get("reason") == "initial_state_changed" for run in runs)
     backends = {}
     for backend in ("jev", "baseline"):
         group = [run for run in runs if run.get("backend") == backend]
@@ -200,6 +227,7 @@ def run_comparison(*, scenario, udid, bundle_id, output_dir, api_key, pricing,
                    "elapsed_ms": None, "model_ms": [], "model_calls": 0, "actions_executed": 0,
                    "usage": [], "input_tokens": 0, "output_tokens": 0, "cached_input_tokens": 0,
                    "estimated_cost_usd": 0, "initial_state_hash": None,
+                   "setup_state_hash": None,
                    "matched_labels": [], "expected_labels": list(scenario.expect_labels),
                    "trace": identifier + ".jsonl", "video": None, "video_offset_ms": 0}
             callback({"type": "attempt_start", "id": identifier, "pair": pair, "position": position,
@@ -218,7 +246,7 @@ def run_comparison(*, scenario, udid, bundle_id, output_dir, api_key, pricing,
                     device._run(["xcrun", "simctl", "launch", "--terminate-running-process", udid, bundle_id])
                     device.launch()
                     initial = _ready_snapshot(device, start_labels)
-                    row["initial_state_hash"] = semantic_state_hash(initial)
+                    row["setup_state_hash"] = semantic_state_hash(initial)
                     if all(label in initial.labels for label in scenario.expect_labels):
                         raise DeviceError("Starting screen already contains every expected final label")
                     if record_video:
@@ -230,12 +258,13 @@ def run_comparison(*, scenario, udid, bundle_id, output_dir, api_key, pricing,
                     row["setup_status"] = "ready"
                     row["setup_elapsed_ms"] = round((time.perf_counter() - setup_started) * 1000, 1)
                     record({"type": "session", "id": identifier, "backend": backend, "model": model_name,
-                            "initial_state_hash": row["initial_state_hash"], "min_probability": 0})
+                            "setup_state_hash": row["setup_state_hash"], "min_probability": 0})
                     with model:
                         run_started = time.perf_counter()
                         row["video_offset_ms"] = round((run_started - recorder.started_at) * 1000, 1) if recorder else 0
                         row["timing_valid"] = True
-                        result = Runner(device, model, emit=record, **options).run(scenario.goal, scenario.expect_labels)
+                        guarded_device = _FirstObservationDevice(device, initial, row, record)
+                        result = Runner(guarded_device, model, emit=record, **options).run(scenario.goal, scenario.expect_labels)
                     for key in ("status", "reason", "elapsed_ms", "model_ms", "model_calls", "actions_executed", "usage", "matched_labels"):
                         row[key] = result[key]
                 except (Exception, KeyboardInterrupt) as exc:
@@ -245,6 +274,8 @@ def run_comparison(*, scenario, udid, bundle_id, output_dir, api_key, pricing,
                     if run_started is None:
                         row["setup_status"] = "failed"
                     row["elapsed_ms"] = round((time.perf_counter() - run_started) * 1000, 1) if run_started is not None else None
+                    if isinstance(exc, _InitialStateChanged):
+                        row.update(reason="initial_state_changed", setup_status="failed", timing_valid=False, elapsed_ms=None)
                     row["error"] = str(exc) if isinstance(exc, (ModelError, DeviceError)) else type(exc).__name__
                     record({"type": "error", "error": row["error"], "reason": row["reason"]})
                     decisions = [event for event in events if event.get("type") == "decision"]
@@ -259,6 +290,10 @@ def run_comparison(*, scenario, udid, bundle_id, output_dir, api_key, pricing,
                         try:
                             recorder.stop()
                             row["video"] = identifier + ".mp4"
+                        except KeyboardInterrupt:
+                            interrupted = True
+                            row["artifact_error"] = "Recording finalization interrupted; video omitted"
+                            record({"type": "artifact_error", "error": row["artifact_error"]})
                         except Exception:
                             row["artifact_error"] = "Recording finalization failed; video omitted"
             row.update(_cost_stats(row["usage"], row["model_calls"], pricing[backend]))

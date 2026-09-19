@@ -20,6 +20,8 @@ jev-ios compare \
 
 Open `runs/comparison-01/comparison.html` for synchronized normal-speed replays, every attempt, completion rates, task time, model latency, and estimated cost. The command resets the app process before each attempt and checks the starting screen. An arbitrary app may need its own fixture-data reset. Read the [comparison protocol](docs/comparison.md) before comparing another app.
 
+**Recorded comparison:** Jev passed 5/6 attempts; GPT-5.4 Nano passed 2/6. The sole pair where both passed took **14.65 s versus 25.64 s** (1.75×). Four baseline attempts hit HTTP 429; one Jev attempt timed out. This is one local fixture, with one mutually successful pair—not a general speed claim. [Open the paired replay](docs/media/comparison.html) · [All results and measurement limits](docs/comparison.md#recorded-results--september-19-2026).
+
 ## Watch it run
 
 **Seven native actions in 16.61 seconds. Median Jev response: 224 ms.** One recorded run on iOS 26.2 Simulator, including observation, input, and final verification. Model response time is only part of the total.

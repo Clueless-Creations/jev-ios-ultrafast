@@ -53,3 +53,41 @@ The report shows completion counts before speed ratios. Verified-run medians and
 Cost is estimated from catalog rates and reported input/output/cache usage. Missing usage makes the cost unknown, not zero. Provider routing, load, and automatic caching are not fully controlled; cached tokens are reported when available. The baseline's JSON prompt and Jev's choice questions expose equivalent information but are different provider formats. Those differences and the models' capabilities are part of this backend comparison.
 
 Vercel documents [structured outputs](https://vercel.com/docs/ai-gateway/sdks-and-apis/openai-chat-completions/structured-outputs), [reasoning controls](https://vercel.com/docs/ai-gateway/sdks-and-apis/openai-chat-completions/reasoning), and [model discovery](https://vercel.com/docs/ai-gateway/models-and-providers). The live catalog, rather than a promotional claim, supplies the run's rate estimate.
+
+## Recorded results · September 19, 2026
+
+[Interactive paired replay](media/comparison.html) · [Complete result data](media/comparison.json)
+
+Two fixed three-pair cohorts ran on the same Daybreak binary, iOS 26.2 Simulator, Xcode 27.0, Apple Silicon MacBook Pro, light appearance, and Large text. Each cohort used the declared Jev→baseline, baseline→Jev, Jev→baseline order. The second complete cohort was scheduled after the first produced no mutually verified pairs. All twelve attempts are published; none were replaced or omitted.
+
+| Measurement | Jev | GPT-5.4 Nano |
+| --- | ---: | ---: |
+| Verified / attempted | 5 / 6 | 2 / 6 |
+| Median usable-response latency | 242.355 ms | 921.740 ms |
+| Requests with timing / attempted | 39 / 40 | 34 / 38 |
+| Reported input tokens | 97,592 | 48,011 |
+| Reported output tokens | 3,986 | 816 |
+| Task time in the sole mutually verified pair | 14.6500 s | 25.6351 s |
+| Actions in that pair | 7 | 7 |
+| Estimated cost of that pair | $0.000748104 | $0.002147800 |
+
+The paired elapsed ratio is **1.7498×**, based on **one of six pairs**. Successful request latency excludes five requests without usable responses. Four baseline attempts ended in HTTP 429; one Jev attempt ended in a connection failure or timeout. These provider failures confound model-quality and availability comparisons. Total costs remain unknown because failed requests lack usage; no zero-cost assumption is made.
+
+| Cohort / pair | Order | Jev outcome and time | Baseline outcome and time |
+| --- | --- | --- | --- |
+| 1 / 1 | Jev first | Verified · 15.6827 s | HTTP 429 after 10 actions · 31.1699 s |
+| 1 / 2 | Baseline first | Verified · 21.5469 s | HTTP 429 before input · 0.3998 s |
+| 1 / 3 | Jev first | Timeout after 4 actions · 19.1370 s | Verified · 27.8271 s |
+| 2 / 1 | Jev first | Verified · 18.1145 s | HTTP 429 after 10 actions · 29.5498 s |
+| 2 / 2 | Baseline first | Verified · 14.8830 s | HTTP 429 before input · 0.6314 s |
+| 2 / 3 | Jev first | Verified · 14.6500 s | Verified · 25.6351 s |
+
+The replay opens pair 6 because it is the sole pair with two verified outcomes; the other ten attempts remain available in the table and pair selector. Baseline attempts that reached ten actions had skipped Walking, saved the wrong preference, and restarted the flow before rate limiting. The verifier correctly rejected that intermediate saved screen. This does not establish what those attempts would have done without throttling.
+
+The measured source revision is `ec9e3589575332b906a4289f06eff2a6b6a45192`. The manifest records the app binary and scenario SHA-256 values, cohort timestamps, usage, individual request times, and recording fingerprints. All twelve actual first-observation element lists have the same SHA-256, in addition to the matching setup-state hashes. Subsequent source changes harden first-observation matching, interruption cleanup, incomplete-cohort exit status, and replay controls; the decision backends and Runner remain unchanged.
+
+Both adapters received one excluded synthetic DONE preflight request before the first cohort; baseline parameter compatibility was checked separately before measurement. No warmup app run was discarded from these cohorts. Credentials, catalog fetches, reset, stable-screen checks, and recording setup are outside the task clock.
+
+All twelve recordings are included. Publication scales them to 660 pixels wide and re-encodes H.264 while preserving every frame's presentation timestamp within 1/600 second; no timeline acceleration or cuts are used. Container end durations can differ by up to 0.119 seconds because of final-frame duration metadata. Simulator recording can omit trailing static time—for example, the timeout recording ends before the request deadline. Playback therefore labels its recording clock separately from measured task time and holds the last available frame. Raw traces stay local; their hashes are published.
+
+The local suite passes 170 Python tests and 13 Node wrapper tests, including replay-controller mocks. Independent review covered model validation, matching, interruption preservation, cost accounting, publication filtering, and replay synchronization. This remains a small simulator smoke comparison, not a powered benchmark or a claim about other apps, models, devices, or provider accounts.

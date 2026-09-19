@@ -92,3 +92,17 @@ class CliTests(unittest.TestCase):
             self.assertEqual(status, 1)
             auth.assert_not_called()
             self.assertFalse((Path(directory)/'new').exists())
+
+    def test_interrupted_partial_comparison_cannot_return_success(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'scenario.json'
+            path.write_text(json.dumps({'schema':'jev-ios/scenario/v1','name':'fixture','goal':'Open settings',
+                                        'expect_labels':['Settings']}))
+            for count, expected in [(1, 2), (6, 0)]:
+                with self.subTest(count=count), patch('jev_ios.cli.model_catalog', return_value=[]), \
+                     patch('jev_ios.cli.pricing_bound', return_value={'reserved_usd':0}), \
+                     patch('jev_ios.comparison.run_comparison', return_value={'runs':[{'status':'verified'}]*count}), \
+                     patch('jev_ios.comparison_report.write_comparison_report'), contextlib.redirect_stdout(io.StringIO()):
+                    status = main(['compare','--scenario',str(path),'--udid','fixture','--bundle-id','example.app',
+                                   '--start-label','Home','--output-dir',directory+'/new'])
+                self.assertEqual(status, expected)

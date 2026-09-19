@@ -1,0 +1,1139 @@
+{
+  "schema": "jev-ios/comparison/v1",
+  "created_at": "2026-09-19T21:09:38.806607+00:00",
+  "scenario": {
+    "schema": "jev-ios/scenario/v1",
+    "name": "daybreak-lisbon-weekend",
+    "goal": "Plan a slow Saturday in Lisbon with Design & coffee, get around by Walking, start at 10:00, then build and save the weekend itinerary.",
+    "expect_labels": [
+      "Lisbon weekend saved",
+      "Design & coffee \u00b7 Walking \u00b7 10:00"
+    ],
+    "max_steps": 16,
+    "min_probability": 0,
+    "allow_labels": [],
+    "allow_scroll": false,
+    "text_values": {}
+  },
+  "settings": {
+    "pairs": 6,
+    "orders": [
+      [
+        "jev",
+        "baseline"
+      ],
+      [
+        "baseline",
+        "jev"
+      ],
+      [
+        "jev",
+        "baseline"
+      ],
+      [
+        "jev",
+        "baseline"
+      ],
+      [
+        "baseline",
+        "jev"
+      ],
+      [
+        "jev",
+        "baseline"
+      ]
+    ],
+    "start_labels": [
+      "Daybreak",
+      "Lisbon",
+      "Kyoto"
+    ],
+    "record_video": true,
+    "min_probability": 0,
+    "confidence_policy": "Disabled for both backends; generated JSON has no calibrated choice probability",
+    "request_timeout_seconds": 10,
+    "max_request_bytes": 24000,
+    "baseline_request": {
+      "temperature": 0,
+      "reasoning_effort": "none",
+      "max_output_tokens": 128
+    },
+    "timing_boundary": "Runner start through final label verification; excludes reset, initial stability, credentials, pricing, and recording setup/finalization.",
+    "reset": "simctl launch --terminate-running-process; application data preserved",
+    "model_connections": "Fresh per attempt; reused within an attempt",
+    "cost_basis": "Catalog token rates and reported usage; not a provider billing receipt"
+  },
+  "pricing": {
+    "jev": {
+      "model": "typesafe-ai/jev",
+      "input_rate_per_million": 0.041999999999999996,
+      "output_rate_per_million": 0.0,
+      "cache_read_rate_per_million": 0.041999999999999996,
+      "reserved_usd": 0.043008,
+      "max_calls": 16,
+      "question_context_tokens": 32000
+    },
+    "baseline": {
+      "model": "openai/gpt-5.4-nano",
+      "input_rate_per_million": 0.19999999999999998,
+      "output_rate_per_million": 1.25,
+      "cache_read_rate_per_million": 0.02,
+      "reserved_usd": 0.080998,
+      "max_calls": 16,
+      "question_context_tokens": 400000
+    }
+  },
+  "runs": [
+    {
+      "id": "cohort-1-pair-01-1-jev",
+      "pair": 1,
+      "position": 1,
+      "backend": "jev",
+      "model": "typesafe-ai/jev",
+      "status": "verified",
+      "reason": "exact_labels_visible",
+      "setup_status": "ready",
+      "timing_valid": true,
+      "setup_elapsed_ms": 5809.2,
+      "elapsed_ms": 15682.7,
+      "model_ms": [
+        562.817,
+        187.806,
+        174.351,
+        199.511,
+        223.584,
+        296.508,
+        784.622
+      ],
+      "model_calls": 7,
+      "actions_executed": 7,
+      "usage": [
+        {
+          "inputTokens": 1724,
+          "outputTokens": 86
+        },
+        {
+          "inputTokens": 1691,
+          "outputTokens": 80
+        },
+        {
+          "inputTokens": 2220,
+          "outputTokens": 94
+        },
+        {
+          "inputTokens": 2806,
+          "outputTokens": 126
+        },
+        {
+          "inputTokens": 3020,
+          "outputTokens": 127
+        },
+        {
+          "inputTokens": 3240,
+          "outputTokens": 127
+        },
+        {
+          "inputTokens": 3111,
+          "outputTokens": 80
+        }
+      ],
+      "input_tokens": 17812,
+      "output_tokens": 720,
+      "cached_input_tokens": 0,
+      "estimated_cost_usd": 0.000748104,
+      "initial_state_hash": "53aa5a61f18b0c1de4288ae8475b200a07e8fd08b6b166defc1b69d05c2da05e",
+      "matched_labels": [
+        "Lisbon weekend saved",
+        "Design & coffee \u00b7 Walking \u00b7 10:00"
+      ],
+      "expected_labels": [
+        "Lisbon weekend saved",
+        "Design & coffee \u00b7 Walking \u00b7 10:00"
+      ],
+      "video": "comparison-c1-pair-01-1-jev.mp4",
+      "video_offset_ms": 0.5,
+      "cohort": 1,
+      "first_observation_elements_sha256": "e5dd70a719148a68d478f3f77f2eb8297387528df5c2fdc9f09b83e5ca27ffc9",
+      "trace_sha256": "0d7187e47c11829effd0355f7e5011ebb849a7c5ba81a621222c5fc2a1e0e95d"
+    },
+    {
+      "id": "cohort-1-pair-01-2-baseline",
+      "pair": 1,
+      "position": 2,
+      "backend": "baseline",
+      "model": "openai/gpt-5.4-nano",
+      "status": "error",
+      "reason": "run_failed",
+      "setup_status": "ready",
+      "timing_valid": true,
+      "setup_elapsed_ms": 2631.2,
+      "elapsed_ms": 31169.9,
+      "model_ms": [
+        717.153,
+        845.645,
+        778.921,
+        925.808,
+        652.667,
+        1336.422,
+        1220.786,
+        4343.531,
+        1113.541,
+        963.135
+      ],
+      "model_calls": 11,
+      "actions_executed": 10,
+      "usage": [
+        {
+          "inputTokens": 940,
+          "outputTokens": 24,
+          "totalTokens": 964,
+          "cacheReadInputTokens": 0
+        },
+        {
+          "inputTokens": 930,
+          "outputTokens": 24,
+          "totalTokens": 954,
+          "cacheReadInputTokens": 0
+        },
+        {
+          "inputTokens": 1220,
+          "outputTokens": 24,
+          "totalTokens": 1244,
+          "cacheReadInputTokens": 0
+        },
+        {
+          "inputTokens": 1493,
+          "outputTokens": 24,
+          "totalTokens": 1517,
+          "cacheReadInputTokens": 0
+        },
+        {
+          "inputTokens": 1616,
+          "outputTokens": 24,
+          "totalTokens": 1640,
+          "cacheReadInputTokens": 0
+        },
+        {
+          "inputTokens": 1588,
+          "outputTokens": 24,
+          "totalTokens": 1612,
+          "cacheReadInputTokens": 0
+        },
+        {
+          "inputTokens": 1512,
+          "outputTokens": 24,
+          "totalTokens": 1536,
+          "cacheReadInputTokens": 0
+        },
+        {
+          "inputTokens": 1680,
+          "outputTokens": 24,
+          "totalTokens": 1704,
+          "cacheReadInputTokens": 0
+        },
+        {
+          "inputTokens": 1547,
+          "outputTokens": 24,
+          "totalTokens": 1571,
+          "cacheReadInputTokens": 0
+        },
+        {
+          "inputTokens": 1710,
+          "outputTokens": 24,
+          "totalTokens": 1734,
+          "cacheReadInputTokens": 0
+        }
+      ],
+      "input_tokens": 14236,
+      "output_tokens": 240,
+      "cached_input_tokens": 0,
+      "estimated_cost_usd": null,
+      "initial_state_hash": "53aa5a61f18b0c1de4288ae8475b200a07e8fd08b6b166defc1b69d05c2da05e",
+      "matched_labels": [],
+      "expected_labels": [
+        "Lisbon weekend saved",
+        "Design & coffee \u00b7 Walking \u00b7 10:00"
+      ],
+      "video": "comparison-c1-pair-01-2-baseline.mp4",
+      "video_offset_ms": 0.6,
+      "error": "Baseline provider returned HTTP 429; no action dispatched for this decision.",
+      "cohort": 1,
+      "first_observation_elements_sha256": "e5dd70a719148a68d478f3f77f2eb8297387528df5c2fdc9f09b83e5ca27ffc9",
+      "trace_sha256": "e8ceef97a06bbc276627695fc2281597295143a8d1d75640a4c5d389ddd9dd27"
+    },
+    {
+      "id": "cohort-1-pair-02-1-baseline",
+      "pair": 2,
+      "position": 1,
+      "backend": "baseline",
+      "model": "openai/gpt-5.4-nano",
+      "status": "error",
+      "reason": "run_failed",
+      "setup_status": "ready",
+      "timing_valid": true,
+      "setup_elapsed_ms": 2086.4,
+      "elapsed_ms": 399.8,
+      "model_ms": [],
+      "model_calls": 1,
+      "actions_executed": 0,
+      "usage": [],
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "cached_input_tokens": 0,
+      "estimated_cost_usd": null,
+      "initial_state_hash": "53aa5a61f18b0c1de4288ae8475b200a07e8fd08b6b166defc1b69d05c2da05e",
+      "matched_labels": [],
+      "expected_labels": [
+        "Lisbon weekend saved",
+        "Design & coffee \u00b7 Walking \u00b7 10:00"
+      ],
+      "video": "comparison-c1-pair-02-1-baseline.mp4",
+      "video_offset_ms": 0.3,
+      "error": "Baseline provider returned HTTP 429; no action dispatched for this decision.",
+      "cohort": 1,
+      "first_observation_elements_sha256": "e5dd70a719148a68d478f3f77f2eb8297387528df5c2fdc9f09b83e5ca27ffc9",
+      "trace_sha256": "1ee6e8d94b05df643a5e82c0233eecb48bfaff212cdc22f9c3f89500f44aa57c"
+    },
+    {
+      "id": "cohort-1-pair-02-2-jev",
+      "pair": 2,
+      "position": 2,
+      "backend": "jev",
+      "model": "typesafe-ai/jev",
+      "status": "verified",
+      "reason": "exact_labels_visible",
+      "setup_status": "ready",
+      "timing_valid": true,
+      "setup_elapsed_ms": 2148.2,
+      "elapsed_ms": 21546.9,
+      "model_ms": [
+        310.598,
+        153.822,
+        235.226,
+        478.015,
+        341.737,
+        202.397,
+        338.481
+      ],
+      "model_calls": 7,
+      "actions_executed": 7,
+      "usage": [
+        {
+          "inputTokens": 1723,
+          "outputTokens": 86
+        },
+        {
+          "inputTokens": 1700,
+          "outputTokens": 80
+        },
+        {
+          "inputTokens": 2236,
+          "outputTokens": 94
+        },
+        {
+          "inputTokens": 2818,
+          "outputTokens": 126
+        },
+        {
+          "inputTokens": 3038,
+          "outputTokens": 127
+        },
+        {
+          "inputTokens": 3255,
+          "outputTokens": 127
+        },
+        {
+          "inputTokens": 3131,
+          "outputTokens": 80
+        }
+      ],
+      "input_tokens": 17901,
+      "output_tokens": 720,
+      "cached_input_tokens": 0,
+      "estimated_cost_usd": 0.000751842,
+      "initial_state_hash": "53aa5a61f18b0c1de4288ae8475b200a07e8fd08b6b166defc1b69d05c2da05e",
+      "matched_labels": [
+        "Lisbon weekend saved",
+        "Design & coffee \u00b7 Walking \u00b7 10:00"
+      ],
+      "expected_labels": [
+        "Lisbon weekend saved",
+        "Design & coffee \u00b7 Walking \u00b7 10:00"
+      ],
+      "video": "comparison-c1-pair-02-2-jev.mp4",
+      "video_offset_ms": 0.4,
+      "cohort": 1,
+      "first_observation_elements_sha256": "e5dd70a719148a68d478f3f77f2eb8297387528df5c2fdc9f09b83e5ca27ffc9",
+      "trace_sha256": "66ca2c34a7f1bf7616946b2f199adb4f3e369572f0410c8ae878cf19d41ed064"
+    },
+    {
+      "id": "cohort-1-pair-03-1-jev",
+      "pair": 3,
+      "position": 1,
+      "backend": "jev",
+      "model": "typesafe-ai/jev",
+      "status": "error",
+      "reason": "run_failed",
+      "setup_status": "ready",
+      "timing_valid": true,
+      "setup_elapsed_ms": 4038.1,
+      "elapsed_ms": 19137.0,
+      "model_ms": [
+        304.46,
+        289.592,
+        164.844,
+        325.855
+      ],
+      "model_calls": 5,
+      "actions_executed": 4,
+      "usage": [
+        {
+          "inputTokens": 1716,
+          "outputTokens": 86
+        },
+        {
+          "inputTokens": 1690,
+          "outputTokens": 80
+        },
+        {
+          "inputTokens": 2220,
+          "outputTokens": 94
+        },
+        {
+          "inputTokens": 2807,
+          "outputTokens": 126
+        }
+      ],
+      "input_tokens": 8433,
+      "output_tokens": 386,
+      "cached_input_tokens": 0,
+      "estimated_cost_usd": null,
+      "initial_state_hash": "53aa5a61f18b0c1de4288ae8475b200a07e8fd08b6b166defc1b69d05c2da05e",
+      "matched_labels": [],
+      "expected_labels": [
+        "Lisbon weekend saved",
+        "Design & coffee \u00b7 Walking \u00b7 10:00"
+      ],
+      "video": "comparison-c1-pair-03-1-jev.mp4",
+      "video_offset_ms": 0.5,
+      "error": "Jev connection failed or timed out; nothing executed.",
+      "cohort": 1,
+      "first_observation_elements_sha256": "e5dd70a719148a68d478f3f77f2eb8297387528df5c2fdc9f09b83e5ca27ffc9",
+      "trace_sha256": "4fe1652a3027d7b9d611c54e61404cdfd0cc18ab5a959c2ecf2f8476a37bea6f"
+    },
+    {
+      "id": "cohort-1-pair-03-2-baseline",
+      "pair": 3,
+      "position": 2,
+      "backend": "baseline",
+      "model": "openai/gpt-5.4-nano",
+      "status": "verified",
+      "reason": "exact_labels_visible",
+      "setup_status": "ready",
+      "timing_valid": true,
+      "setup_elapsed_ms": 2856.0,
+      "elapsed_ms": 27827.1,
+      "model_ms": [
+        843.172,
+        917.672,
+        676.168,
+        6733.23,
+        1662.589,
+        651.89,
+        1004.371
+      ],
+      "model_calls": 7,
+      "actions_executed": 7,
+      "usage": [
+        {
+          "inputTokens": 944,
+          "outputTokens": 24,
+          "totalTokens": 968,
+          "cacheReadInputTokens": 0
+        },
+        {
+          "inputTokens": 926,
+          "outputTokens": 24,
+          "totalTokens": 950,
+          "cacheReadInputTokens": 0
+        },
+        {
+          "inputTokens": 1220,
+          "outputTokens": 24,
+          "totalTokens": 1244,
+          "cacheReadInputTokens": 0
+        },
+        {
+          "inputTokens": 1496,
+          "outputTokens": 24,
+          "totalTokens": 1520,
+          "cacheReadInputTokens": 0
+        },
+        {
+          "inputTokens": 1621,
+          "outputTokens": 24,
+          "totalTokens": 1645,
+          "cacheReadInputTokens": 0
+        },
+        {
+          "inputTokens": 1746,
+          "outputTokens": 24,
+          "totalTokens": 1770,
+          "cacheReadInputTokens": 0
+        },
+        {
+          "inputTokens": 1720,
+          "outputTokens": 24,
+          "totalTokens": 1744,
+          "cacheReadInputTokens": 0
+        }
+      ],
+      "input_tokens": 9673,
+      "output_tokens": 168,
+      "cached_input_tokens": 0,
+      "estimated_cost_usd": 0.0021446,
+      "initial_state_hash": "53aa5a61f18b0c1de4288ae8475b200a07e8fd08b6b166defc1b69d05c2da05e",
+      "matched_labels": [
+        "Lisbon weekend saved",
+        "Design & coffee \u00b7 Walking \u00b7 10:00"
+      ],
+      "expected_labels": [
+        "Lisbon weekend saved",
+        "Design & coffee \u00b7 Walking \u00b7 10:00"
+      ],
+      "video": "comparison-c1-pair-03-2-baseline.mp4",
+      "video_offset_ms": 0.6,
+      "cohort": 1,
+      "first_observation_elements_sha256": "e5dd70a719148a68d478f3f77f2eb8297387528df5c2fdc9f09b83e5ca27ffc9",
+      "trace_sha256": "3bb1f70f44f3e0412e9425c3ca50d1db85b3d44cce571a7ef27210cc0253b0ae"
+    },
+    {
+      "id": "cohort-2-pair-01-1-jev",
+      "pair": 4,
+      "position": 1,
+      "backend": "jev",
+      "model": "typesafe-ai/jev",
+      "status": "verified",
+      "reason": "exact_labels_visible",
+      "setup_status": "ready",
+      "timing_valid": true,
+      "setup_elapsed_ms": 7549.8,
+      "elapsed_ms": 18114.5,
+      "model_ms": [
+        333.059,
+        233.307,
+        227.521,
+        184.228,
+        242.355,
+        188.744,
+        200.848
+      ],
+      "model_calls": 7,
+      "actions_executed": 7,
+      "usage": [
+        {
+          "inputTokens": 1718,
+          "outputTokens": 86
+        },
+        {
+          "inputTokens": 1692,
+          "outputTokens": 80
+        },
+        {
+          "inputTokens": 2215,
+          "outputTokens": 94
+        },
+        {
+          "inputTokens": 2797,
+          "outputTokens": 126
+        },
+        {
+          "inputTokens": 3013,
+          "outputTokens": 127
+        },
+        {
+          "inputTokens": 3231,
+          "outputTokens": 127
+        },
+        {
+          "inputTokens": 3099,
+          "outputTokens": 80
+        }
+      ],
+      "input_tokens": 17765,
+      "output_tokens": 720,
+      "cached_input_tokens": 0,
+      "estimated_cost_usd": 0.00074613,
+      "initial_state_hash": "53aa5a61f18b0c1de4288ae8475b200a07e8fd08b6b166defc1b69d05c2da05e",
+      "matched_labels": [
+        "Lisbon weekend saved",
+        "Design & coffee \u00b7 Walking \u00b7 10:00"
+      ],
+      "expected_labels": [
+        "Lisbon weekend saved",
+        "Design & coffee \u00b7 Walking \u00b7 10:00"
+      ],
+      "video": "comparison-c2-pair-01-1-jev.mp4",
+      "video_offset_ms": 1.1,
+      "cohort": 2,
+      "first_observation_elements_sha256": "e5dd70a719148a68d478f3f77f2eb8297387528df5c2fdc9f09b83e5ca27ffc9",
+      "trace_sha256": "44fedceffeb5fbf4645bbf349fcf9499e4decfe9182a2bd063b3a8d5ee9266cf"
+    },
+    {
+      "id": "cohort-2-pair-01-2-baseline",
+      "pair": 4,
+      "position": 2,
+      "backend": "baseline",
+      "model": "openai/gpt-5.4-nano",
+      "status": "error",
+      "reason": "run_failed",
+      "setup_status": "ready",
+      "timing_valid": true,
+      "setup_elapsed_ms": 4568.8,
+      "elapsed_ms": 29549.8,
+      "model_ms": [
+        900.53,
+        1109.695,
+        963.576,
+        752.583,
+        746.589,
+        1159.685,
+        1584.204,
+        961.114,
+        1010.629,
+        1268.917
+      ],
+      "model_calls": 11,
+      "actions_executed": 10,
+      "usage": [
+        {
+          "inputTokens": 937,
+          "outputTokens": 24,
+          "totalTokens": 961,
+          "cacheReadInputTokens": 0
+        },
+        {
+          "inputTokens": 936,
+          "outputTokens": 24,
+          "totalTokens": 960,
+          "cacheReadInputTokens": 0
+        },
+        {
+          "inputTokens": 1224,
+          "outputTokens": 24,
+          "totalTokens": 1248,
+          "cacheReadInputTokens": 0
+        },
+        {
+          "inputTokens": 1508,
+          "outputTokens": 24,
+          "totalTokens": 1532,
+          "cacheReadInputTokens": 0
+        },
+        {
+          "inputTokens": 1637,
+          "outputTokens": 24,
+          "totalTokens": 1661,
+          "cacheReadInputTokens": 0
+        },
+        {
+          "inputTokens": 1614,
+          "outputTokens": 24,
+          "totalTokens": 1638,
+          "cacheReadInputTokens": 0
+        },
+        {
+          "inputTokens": 1546,
+          "outputTokens": 24,
+          "totalTokens": 1570,
+          "cacheReadInputTokens": 0
+        },
+        {
+          "inputTokens": 1704,
+          "outputTokens": 24,
+          "totalTokens": 1728,
+          "cacheReadInputTokens": 0
+        },
+        {
+          "inputTokens": 1573,
+          "outputTokens": 24,
+          "totalTokens": 1597,
+          "cacheReadInputTokens": 0
+        },
+        {
+          "inputTokens": 1734,
+          "outputTokens": 24,
+          "totalTokens": 1758,
+          "cacheReadInputTokens": 0
+        }
+      ],
+      "input_tokens": 14413,
+      "output_tokens": 240,
+      "cached_input_tokens": 0,
+      "estimated_cost_usd": null,
+      "initial_state_hash": "53aa5a61f18b0c1de4288ae8475b200a07e8fd08b6b166defc1b69d05c2da05e",
+      "matched_labels": [],
+      "expected_labels": [
+        "Lisbon weekend saved",
+        "Design & coffee \u00b7 Walking \u00b7 10:00"
+      ],
+      "video": "comparison-c2-pair-01-2-baseline.mp4",
+      "video_offset_ms": 2.4,
+      "error": "Baseline provider returned HTTP 429; no action dispatched for this decision.",
+      "cohort": 2,
+      "first_observation_elements_sha256": "e5dd70a719148a68d478f3f77f2eb8297387528df5c2fdc9f09b83e5ca27ffc9",
+      "trace_sha256": "308548ab4fecb360e71568ba2c860987517c83e1a500580477e1ec08b930bd8d"
+    },
+    {
+      "id": "cohort-2-pair-02-1-baseline",
+      "pair": 5,
+      "position": 1,
+      "backend": "baseline",
+      "model": "openai/gpt-5.4-nano",
+      "status": "error",
+      "reason": "run_failed",
+      "setup_status": "ready",
+      "timing_valid": true,
+      "setup_elapsed_ms": 3801.6,
+      "elapsed_ms": 631.4,
+      "model_ms": [],
+      "model_calls": 1,
+      "actions_executed": 0,
+      "usage": [],
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "cached_input_tokens": 0,
+      "estimated_cost_usd": null,
+      "initial_state_hash": "53aa5a61f18b0c1de4288ae8475b200a07e8fd08b6b166defc1b69d05c2da05e",
+      "matched_labels": [],
+      "expected_labels": [
+        "Lisbon weekend saved",
+        "Design & coffee \u00b7 Walking \u00b7 10:00"
+      ],
+      "video": "comparison-c2-pair-02-1-baseline.mp4",
+      "video_offset_ms": 0.4,
+      "error": "Baseline provider returned HTTP 429; no action dispatched for this decision.",
+      "cohort": 2,
+      "first_observation_elements_sha256": "e5dd70a719148a68d478f3f77f2eb8297387528df5c2fdc9f09b83e5ca27ffc9",
+      "trace_sha256": "083a51ffd22699f0a8704a6e2870200fb7b7d918b11a911a797c49d7f188b5f2"
+    },
+    {
+      "id": "cohort-2-pair-02-2-jev",
+      "pair": 5,
+      "position": 2,
+      "backend": "jev",
+      "model": "typesafe-ai/jev",
+      "status": "verified",
+      "reason": "exact_labels_visible",
+      "setup_status": "ready",
+      "timing_valid": true,
+      "setup_elapsed_ms": 2120.8,
+      "elapsed_ms": 14883.0,
+      "model_ms": [
+        349.155,
+        188.169,
+        213.685,
+        250.355,
+        207.367,
+        261.855,
+        214.083
+      ],
+      "model_calls": 7,
+      "actions_executed": 7,
+      "usage": [
+        {
+          "inputTokens": 1721,
+          "outputTokens": 86
+        },
+        {
+          "inputTokens": 1696,
+          "outputTokens": 80
+        },
+        {
+          "inputTokens": 2229,
+          "outputTokens": 94
+        },
+        {
+          "inputTokens": 2817,
+          "outputTokens": 126
+        },
+        {
+          "inputTokens": 3030,
+          "outputTokens": 127
+        },
+        {
+          "inputTokens": 3253,
+          "outputTokens": 127
+        },
+        {
+          "inputTokens": 3123,
+          "outputTokens": 80
+        }
+      ],
+      "input_tokens": 17869,
+      "output_tokens": 720,
+      "cached_input_tokens": 0,
+      "estimated_cost_usd": 0.000750498,
+      "initial_state_hash": "53aa5a61f18b0c1de4288ae8475b200a07e8fd08b6b166defc1b69d05c2da05e",
+      "matched_labels": [
+        "Lisbon weekend saved",
+        "Design & coffee \u00b7 Walking \u00b7 10:00"
+      ],
+      "expected_labels": [
+        "Lisbon weekend saved",
+        "Design & coffee \u00b7 Walking \u00b7 10:00"
+      ],
+      "video": "comparison-c2-pair-02-2-jev.mp4",
+      "video_offset_ms": 0.4,
+      "cohort": 2,
+      "first_observation_elements_sha256": "e5dd70a719148a68d478f3f77f2eb8297387528df5c2fdc9f09b83e5ca27ffc9",
+      "trace_sha256": "64f62e51016b79d0995cd65e85373553b34db25d2862654f278be6f5f8852013"
+    },
+    {
+      "id": "cohort-2-pair-03-1-jev",
+      "pair": 6,
+      "position": 1,
+      "backend": "jev",
+      "model": "typesafe-ai/jev",
+      "status": "verified",
+      "reason": "exact_labels_visible",
+      "setup_status": "ready",
+      "timing_valid": true,
+      "setup_elapsed_ms": 2518.8,
+      "elapsed_ms": 14650.0,
+      "model_ms": [
+        277.196,
+        196.103,
+        251.675,
+        243.526,
+        163.445,
+        337.62,
+        294.88
+      ],
+      "model_calls": 7,
+      "actions_executed": 7,
+      "usage": [
+        {
+          "inputTokens": 1723,
+          "outputTokens": 86
+        },
+        {
+          "inputTokens": 1698,
+          "outputTokens": 80
+        },
+        {
+          "inputTokens": 2228,
+          "outputTokens": 94
+        },
+        {
+          "inputTokens": 2807,
+          "outputTokens": 126
+        },
+        {
+          "inputTokens": 3020,
+          "outputTokens": 127
+        },
+        {
+          "inputTokens": 3232,
+          "outputTokens": 127
+        },
+        {
+          "inputTokens": 3104,
+          "outputTokens": 80
+        }
+      ],
+      "input_tokens": 17812,
+      "output_tokens": 720,
+      "cached_input_tokens": 0,
+      "estimated_cost_usd": 0.000748104,
+      "initial_state_hash": "53aa5a61f18b0c1de4288ae8475b200a07e8fd08b6b166defc1b69d05c2da05e",
+      "matched_labels": [
+        "Lisbon weekend saved",
+        "Design & coffee \u00b7 Walking \u00b7 10:00"
+      ],
+      "expected_labels": [
+        "Lisbon weekend saved",
+        "Design & coffee \u00b7 Walking \u00b7 10:00"
+      ],
+      "video": "comparison-c2-pair-03-1-jev.mp4",
+      "video_offset_ms": 0.4,
+      "cohort": 2,
+      "first_observation_elements_sha256": "e5dd70a719148a68d478f3f77f2eb8297387528df5c2fdc9f09b83e5ca27ffc9",
+      "trace_sha256": "9449fcfe51f4c866454078e44bc2c25648aab1bce073c01a599f6573fe2691eb"
+    },
+    {
+      "id": "cohort-2-pair-03-2-baseline",
+      "pair": 6,
+      "position": 2,
+      "backend": "baseline",
+      "model": "openai/gpt-5.4-nano",
+      "status": "verified",
+      "reason": "exact_labels_visible",
+      "setup_status": "ready",
+      "timing_valid": true,
+      "setup_elapsed_ms": 2004.4,
+      "elapsed_ms": 25635.1,
+      "model_ms": [
+        709.446,
+        842.003,
+        750.435,
+        670.055,
+        749.771,
+        1172.213,
+        893.577
+      ],
+      "model_calls": 7,
+      "actions_executed": 7,
+      "usage": [
+        {
+          "inputTokens": 943,
+          "outputTokens": 24,
+          "totalTokens": 967,
+          "cacheReadInputTokens": 0
+        },
+        {
+          "inputTokens": 933,
+          "outputTokens": 24,
+          "totalTokens": 957,
+          "cacheReadInputTokens": 0
+        },
+        {
+          "inputTokens": 1225,
+          "outputTokens": 24,
+          "totalTokens": 1249,
+          "cacheReadInputTokens": 0
+        },
+        {
+          "inputTokens": 1499,
+          "outputTokens": 24,
+          "totalTokens": 1523,
+          "cacheReadInputTokens": 0
+        },
+        {
+          "inputTokens": 1626,
+          "outputTokens": 24,
+          "totalTokens": 1650,
+          "cacheReadInputTokens": 0
+        },
+        {
+          "inputTokens": 1747,
+          "outputTokens": 24,
+          "totalTokens": 1771,
+          "cacheReadInputTokens": 0
+        },
+        {
+          "inputTokens": 1716,
+          "outputTokens": 24,
+          "totalTokens": 1740,
+          "cacheReadInputTokens": 0
+        }
+      ],
+      "input_tokens": 9689,
+      "output_tokens": 168,
+      "cached_input_tokens": 0,
+      "estimated_cost_usd": 0.0021478,
+      "initial_state_hash": "53aa5a61f18b0c1de4288ae8475b200a07e8fd08b6b166defc1b69d05c2da05e",
+      "matched_labels": [
+        "Lisbon weekend saved",
+        "Design & coffee \u00b7 Walking \u00b7 10:00"
+      ],
+      "expected_labels": [
+        "Lisbon weekend saved",
+        "Design & coffee \u00b7 Walking \u00b7 10:00"
+      ],
+      "video": "comparison-c2-pair-03-2-baseline.mp4",
+      "video_offset_ms": 0.4,
+      "cohort": 2,
+      "first_observation_elements_sha256": "e5dd70a719148a68d478f3f77f2eb8297387528df5c2fdc9f09b83e5ca27ffc9",
+      "trace_sha256": "c83fcd5dc15f8950638af0f74070fc1bea77cf13ed2d9eeec6d959aee52d489b"
+    }
+  ],
+  "summary": {
+    "backends": {
+      "jev": {
+        "attempted": 6,
+        "verified": 5,
+        "failed": 1,
+        "setup_failures": 0,
+        "median_verified_elapsed_ms": 15682.7,
+        "median_request_ms": 242.355,
+        "requests_with_timing": 39,
+        "requests_without_timing": 1,
+        "estimated_cost_usd": null,
+        "known_estimated_cost_usd": 0.003744678,
+        "unknown_cost_runs": 1,
+        "input_tokens": 97592,
+        "output_tokens": 3986,
+        "cached_input_tokens": 0
+      },
+      "baseline": {
+        "attempted": 6,
+        "verified": 2,
+        "failed": 4,
+        "setup_failures": 0,
+        "median_verified_elapsed_ms": 26731.1,
+        "median_request_ms": 921.74,
+        "requests_with_timing": 34,
+        "requests_without_timing": 4,
+        "estimated_cost_usd": null,
+        "known_estimated_cost_usd": 0.0042924,
+        "unknown_cost_runs": 4,
+        "input_tokens": 48011,
+        "output_tokens": 816,
+        "cached_input_tokens": 0
+      }
+    },
+    "pairs": [
+      {
+        "pair": 1,
+        "jev_id": "cohort-1-pair-01-1-jev",
+        "baseline_id": "cohort-1-pair-01-2-baseline",
+        "comparable": true,
+        "reason": "matched_outcomes",
+        "baseline_over_jev": null
+      },
+      {
+        "pair": 2,
+        "jev_id": "cohort-1-pair-02-2-jev",
+        "baseline_id": "cohort-1-pair-02-1-baseline",
+        "comparable": true,
+        "reason": "matched_outcomes",
+        "baseline_over_jev": null
+      },
+      {
+        "pair": 3,
+        "jev_id": "cohort-1-pair-03-1-jev",
+        "baseline_id": "cohort-1-pair-03-2-baseline",
+        "comparable": true,
+        "reason": "matched_outcomes",
+        "baseline_over_jev": null
+      },
+      {
+        "pair": 4,
+        "jev_id": "cohort-2-pair-01-1-jev",
+        "baseline_id": "cohort-2-pair-01-2-baseline",
+        "comparable": true,
+        "reason": "matched_outcomes",
+        "baseline_over_jev": null
+      },
+      {
+        "pair": 5,
+        "jev_id": "cohort-2-pair-02-2-jev",
+        "baseline_id": "cohort-2-pair-02-1-baseline",
+        "comparable": true,
+        "reason": "matched_outcomes",
+        "baseline_over_jev": null
+      },
+      {
+        "pair": 6,
+        "jev_id": "cohort-2-pair-03-1-jev",
+        "baseline_id": "cohort-2-pair-03-2-baseline",
+        "comparable": true,
+        "reason": "matched_verified_pair",
+        "baseline_over_jev": 1.7498
+      }
+    ],
+    "paired_verified_count": 1,
+    "initial_state_consistent": true,
+    "initial_state_hashes_count": 1,
+    "median_paired_speedup": 1.75
+  },
+  "provenance": {
+    "source_commit": "ec9e3589575332b906a4289f06eff2a6b6a45192",
+    "app_binary_sha256": "7e06098a8ab1c6a4e4db987832d73d686e644220a13d4b6c35ab48be29840e1d",
+    "scenario_sha256": "87bd238d91ec26cdcad31568043ff8c3ceafd97f01aa15fcf7c76b30bcecdde9",
+    "ios_runtime": "26.2",
+    "appearance": "light",
+    "content_size": "large",
+    "cohorts": [
+      {
+        "cohort": 1,
+        "created_at": "2026-09-19T21:09:38.806607+00:00",
+        "source_pairs": 3
+      },
+      {
+        "cohort": 2,
+        "created_at": "2026-09-19T21:12:51.281822+00:00",
+        "source_pairs": 3
+      }
+    ],
+    "preflight": "One synthetic DONE request per actual adapter immediately before the first cohort, excluded from all results. Baseline parameter compatibility probes were also excluded.",
+    "notes": "Second complete three-pair cohort scheduled after the first had no mutually verified pairs. Same runtime, app, settings and fixed order. All twelve attempts retained; no individual retries or substitutions.",
+    "first_observation_elements_sha256": "e5dd70a719148a68d478f3f77f2eb8297387528df5c2fdc9f09b83e5ca27ffc9",
+    "post_measurement_fixes": "Subsequent changes harden first-observation matching, recording interruption cleanup, and report playback. Decision backends and runner are unchanged from the measured revision."
+  },
+  "media_provenance": [
+    {
+      "name": "comparison-c1-pair-01-1-jev.mp4",
+      "original_seconds": 15.685,
+      "published_seconds": 15.723333,
+      "sha256": "ada98650f497741364d47dc7da4c6893e3589f100281c106788758ba3cdaa8b9"
+    },
+    {
+      "name": "comparison-c1-pair-01-2-baseline.mp4",
+      "original_seconds": 31.171667,
+      "published_seconds": 31.213333,
+      "sha256": "eb1e0661ea741ec428ea710baad78c5ad977fd14febd21c979e5dc2b9835308f"
+    },
+    {
+      "name": "comparison-c1-pair-02-1-baseline.mp4",
+      "original_seconds": 0.181667,
+      "published_seconds": 0.19,
+      "sha256": "3f8110ff23c895eda98946a44c79bed7075145987495d36fb27198885cbb51aa"
+    },
+    {
+      "name": "comparison-c1-pair-02-2-jev.mp4",
+      "original_seconds": 21.51,
+      "published_seconds": 21.51,
+      "sha256": "92e32d6f4a42b0040c6ed98aafebf0ab7040ab08334ffeec0008bc3083218359"
+    },
+    {
+      "name": "comparison-c1-pair-03-1-jev.mp4",
+      "original_seconds": 8.52,
+      "published_seconds": 8.52,
+      "sha256": "a0af2a23b6358dea3c7af2527a63f918f1c8e55e9d3c927a90b2883b8e40e6c7"
+    },
+    {
+      "name": "comparison-c1-pair-03-2-baseline.mp4",
+      "original_seconds": 27.833333,
+      "published_seconds": 27.79,
+      "sha256": "e96796cf5f861ce0ac10bc8054cace79590f9fe28bd08a66384a61008a3a3297"
+    },
+    {
+      "name": "comparison-c2-pair-01-1-jev.mp4",
+      "original_seconds": 18.128333,
+      "published_seconds": 18.14,
+      "sha256": "2c1da39ae35c2eb0104d21c446ce0707e56afb984b9477182c3aa1dfb5df549d"
+    },
+    {
+      "name": "comparison-c2-pair-01-2-baseline.mp4",
+      "original_seconds": 29.366667,
+      "published_seconds": 29.353333,
+      "sha256": "58b0f133a251c5a4923689053221759f785ffd367eb44f956a9a84d2cb202611"
+    },
+    {
+      "name": "comparison-c2-pair-02-1-baseline.mp4",
+      "original_seconds": 0.066667,
+      "published_seconds": 0.066667,
+      "sha256": "421e81ae41cb0d4adbeced0499d04140bf6674501f2e73a2e738ced173e865d0"
+    },
+    {
+      "name": "comparison-c2-pair-02-2-jev.mp4",
+      "original_seconds": 14.793333,
+      "published_seconds": 14.791667,
+      "sha256": "26f4c64e1c9a6206d40f4bc5e25bf2a2d16606a8cf73ce61f54cb3719355a0f9"
+    },
+    {
+      "name": "comparison-c2-pair-03-1-jev.mp4",
+      "original_seconds": 14.655,
+      "published_seconds": 14.666667,
+      "sha256": "46a24f8c1b912ae8f243cb9a60df13bfbe27b7969a734642422d5defeb82576e"
+    },
+    {
+      "name": "comparison-c2-pair-03-2-baseline.mp4",
+      "original_seconds": 25.616667,
+      "published_seconds": 25.498333,
+      "sha256": "93d6be1b4c265f07199e7d3e1eae4f8a10af091676ade880ff068a3d412953b7"
+    }
+  ]
+}

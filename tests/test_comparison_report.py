@@ -2,11 +2,13 @@ import base64
 import json
 from pathlib import Path
 import re
+import shutil
 import stat
+import subprocess
 import tempfile
 import unittest
 
-from jev_ios.comparison_report import write_comparison_report
+from jev_ios.comparison_report import PLAYBACK_SCRIPT, TEMPLATE, write_comparison_report
 
 
 def run(backend="jev", pair=1, **changes):
@@ -162,7 +164,7 @@ class ComparisonReportTests(unittest.TestCase):
     def test_invalid_numeric_types_and_bounds_are_rejected(self):
         for change in ({"elapsed_ms": float("nan")}, {"model_ms": [float("inf")]},
                        {"model_calls": True}, {"estimated_cost_usd": -.001}, {"model_ms": [1] * 31},
-                       {"pair": 0}, {"pair": 6}, {"position": 3}, {"video_offset_ms": -1},
+                       {"pair": 0}, {"pair": 11}, {"position": 3}, {"video_offset_ms": -1},
                        {"timing_valid": 1}, {"elapsed_ms": None}, {"backend": []}, {"status": {}}):
             with self.subTest(change=change):
                 with self.assertRaises(ValueError):
@@ -191,7 +193,7 @@ class ComparisonReportTests(unittest.TestCase):
         malformed = manifest()
         malformed["settings"]["orders"] = [[{}, "jev"]]
         cases.append(malformed)
-        too_many = manifest([run(pair=i // 2 + 1, backend="jev" if i % 2 == 0 else "baseline") for i in range(11)])
+        too_many = manifest([run(pair=i // 2 + 1, backend="jev" if i % 2 == 0 else "baseline") for i in range(21)])
         cases.append(too_many)
         for data in cases:
             with self.subTest(data=data):
@@ -210,6 +212,116 @@ class ComparisonReportTests(unittest.TestCase):
         data["scenario"]["goal"] = "Read __MEDIA__ and __DATA__"
         actual = embedded_data(self.write(data))
         self.assertEqual(actual["scenario"]["goal"], "Read __MEDIA__ and __DATA__")
+
+    def test_all_attempts_and_provenance_survive_a_two_cohort_report(self):
+        data = manifest([run(backend, pair, cohort=1 if pair <= 3 else 2,
+                             status="error" if pair < 6 else "verified",
+                             matched_labels=[] if pair < 6 else ["Saved"],
+                             error="HTTP 429" if pair < 6 else None)
+                         for pair in range(1, 7) for backend in ("jev", "baseline")])
+        data["settings"].update(pairs=6, orders=[["jev", "baseline"]] * 6)
+        data["provenance"] = {"source_commit": "revision", "notes": "Two fixed cohorts; all attempts retained.",
+                              "unknown": "PRIVATE_MARKER", "cohorts": [
+                                  {"cohort": 1, "created_at": "fixture-one", "source_pairs": 3},
+                                  {"cohort": 2, "created_at": "fixture-two", "source_pairs": 3}]}
+        source = self.write(data)
+        actual = embedded_data(source)
+        self.assertEqual(len(actual["runs"]), 12)
+        self.assertEqual(actual["summary"]["paired_verified_count"], 1)
+        self.assertEqual(actual["runs"][0]["error"], "HTTP 429")
+        self.assertEqual(actual["runs"][-1]["cohort"], 2)
+        self.assertEqual(len(actual["provenance"]["cohorts"]), 2)
+        self.assertNotIn("PRIVATE_MARKER", source)
+
+    def test_published_trace_hash_does_not_invent_an_attached_trace(self):
+        data = manifest()
+        for item in data["runs"]:
+            del item["trace"]
+            item["trace_sha256"] = "a" * 64
+            item["first_observation_elements_sha256"] = "b" * 64
+        actual = embedded_data(self.write(data))
+        self.assertIsNone(actual["runs"][0]["trace"])
+        self.assertEqual(actual["runs"][0]["trace_sha256"], "a" * 64)
+
+    @unittest.skipUnless(shutil.which("node"), "Node is required for browser-controller tests")
+    def test_browser_script_syntax(self):
+        script = re.search(r'<script>\n(.*?)\n</script>', TEMPLATE, re.S)[1]
+        result = subprocess.run(["node", "--check", "--input-type=commonjs"], input=script,
+                                text=True, capture_output=True, timeout=10)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    @unittest.skipUnless(shutil.which("node"), "Node is required for browser-controller tests")
+    def test_playback_readiness_cancellation_alignment_and_end_behavior(self):
+        harness = r'''
+const assert=require('node:assert/strict');
+let nextFrame=0;const frames=new Map();
+global.requestAnimationFrame=callback=>{frames.set(++nextFrame,callback);return nextFrame;};
+global.cancelAnimationFrame=id=>frames.delete(id);
+function tick(){const callbacks=[...frames.values()];frames.clear();callbacks.forEach(callback=>callback());}
+async function flush(){for(let i=0;i<8;i++)await Promise.resolve();}
+class Video{
+  constructor(duration=10,ready=4){this.duration=duration;this.readyState=ready;this.currentTime=0;this.playbackRate=1;this.paused=true;this.seeking=false;this.listeners=new Map();this.defer=false;this.promises=[];}
+  addEventListener(name,listener){if(!this.listeners.has(name))this.listeners.set(name,new Set());this.listeners.get(name).add(listener);}
+  removeEventListener(name,listener){this.listeners.get(name)?.delete(listener);}
+  emit(name){[...(this.listeners.get(name)||[])].forEach(listener=>listener());}
+  pause(){this.paused=true;}
+  play(){this.paused=false;if(!this.defer)return Promise.resolve();return new Promise((resolve,reject)=>this.promises.push({resolve,reject}));}
+  advance(seconds){if(!this.paused)this.currentTime=Math.min(this.duration,this.currentTime+seconds);}
+}
+function setup(){const ui={playButton:{},range:{},clock:{},status:{}};return {ui,control:createPairedPlayback(ui)};}
+(async()=>{
+  // Metadata and seek readiness gate Play; a later scrub cancels the old seek.
+  const pending=setup(),a=new Video(10,0),b=new Video(10,0);
+  const firstMount=pending.control.mount([{video:a,offset:.25},{video:b,offset:.75}]);
+  assert.equal(pending.ui.playButton.disabled,true);
+  a.readyState=b.readyState=1;a.emit('loadedmetadata');b.emit('loadedmetadata');await flush();
+  assert.equal(pending.ui.playButton.disabled,true);
+  const laterSeek=pending.control.seek(3);
+  a.readyState=b.readyState=4;a.emit('canplay');b.emit('canplay');
+  assert.equal(await laterSeek,true);assert.equal(await firstMount,false);
+  assert.equal(a.currentTime,3.25);assert.equal(b.currentTime,3.75);
+  assert.equal(pending.control.state().cursor,3);assert.equal(pending.ui.playButton.disabled,false);
+  pending.control.clear();
+
+  // The clock follows decoded frames, pauses on buffering, and never speeds up.
+  const active=setup(),c=new Video(),d=new Video();
+  await active.control.mount([{video:c,offset:.2},{video:d,offset:.4}]);
+  await active.control.toggle();await flush();c.advance(1);d.advance(1);tick();
+  assert.ok(Math.abs(active.control.state().cursor-1)<.0001);
+  tick();assert.ok(Math.abs(active.control.state().cursor-1)<.0001);
+  d.readyState=2;tick();assert.equal(active.control.state().mode,'buffering');assert.equal(c.paused,true);assert.equal(d.paused,true);
+  d.readyState=4;tick();await flush();
+  c.advance(.4);d.advance(.2);tick();assert.equal(c.paused,true);assert.equal(d.paused,false);
+  d.advance(.2);tick();await flush();assert.equal(c.paused,false);
+  assert.equal(c.playbackRate,1);assert.equal(d.playbackRate,1);active.control.clear();
+
+  // A stale play promise cannot resume after scrub or pause, or affect a new pair.
+  const race=setup(),e=new Video(),f=new Video();e.defer=f.defer=true;
+  await race.control.mount([{video:e,offset:.1},{video:f,offset:.2}]);
+  await race.control.toggle();await race.control.seek(2);
+  e.promises[0].resolve();f.promises[0].resolve();await flush();
+  assert.equal(race.control.state().mode,'paused');assert.equal(race.control.state().cursor,2);assert.equal(e.paused,true);
+  await race.control.toggle();race.control.pause();e.promises[1].resolve();f.promises[1].resolve();await flush();
+  assert.equal(race.control.state().mode,'paused');assert.equal(e.paused,true);
+  await race.control.toggle();const g=new Video(),h=new Video();
+  await race.control.mount([{video:g,offset:.3},{video:h,offset:.4}]);
+  e.promises[2].resolve();f.promises[2].resolve();await flush();
+  assert.equal(race.control.state().mode,'paused');assert.equal(race.control.state().cursor,0);assert.equal(e.paused,true);assert.equal(g.paused,true);race.control.clear();
+
+  // Seeking past a short clip holds its final frame; full replay resets offsets.
+  const ending=setup(),short=new Video(2),long=new Video(5);
+  await ending.control.mount([{video:short,offset:.2},{video:long,offset:.4}]);
+  await ending.control.seek(3);await ending.control.toggle();await flush();
+  assert.equal(short.currentTime,1.975);assert.equal(short.paused,true);assert.equal(long.paused,false);
+  long.advance(2);tick();assert.equal(ending.control.state().mode,'paused');assert.equal(ending.control.state().cursor,4.6);
+  await ending.control.toggle();await flush();assert.equal(short.currentTime,.2);assert.equal(long.currentTime,.4);assert.equal(short.paused,false);ending.control.clear();
+  assert.equal(frames.size,0);
+  console.log('Playback readiness, stale-promise cancellation, buffering, drift, seek, ending, and replay: PASS');
+})().catch(error=>{console.error(error);process.exitCode=1;});
+'''
+        result = subprocess.run(["node", "--input-type=commonjs"], input=PLAYBACK_SCRIPT + harness,
+                                text=True, capture_output=True, timeout=10)
+        self.assertEqual(result.returncode, 0, result.stderr)
 
 
 if __name__ == "__main__":
