@@ -93,6 +93,45 @@ class CliTests(unittest.TestCase):
             auth.assert_not_called()
             self.assertFalse((Path(directory)/'new').exists())
 
+    def test_astra_budget_covers_actual_generation_limit_and_cache_write_rate(self):
+        from jev_ios.cli import pricing_bound
+        model = 'openai/gpt-6-astra'
+        models = [{'id':model, 'context_window':1050000, 'pricing':{
+            'input':'0.00001', 'output':'0.00005', 'input_cache_read':'0.000001', 'input_cache_write':'0.0000125'}}]
+        result = pricing_bound(16, 0, 6, engine='baseline', model_id=model, models=models)
+        self.assertEqual(result['reserved_usd'], 5.7216)
+        self.assertEqual(result['maximum_output_tokens'], 1024)
+        self.assertEqual(result['cache_write_rate_per_million'], 12.5)
+        self.assertIsNone(result['baseline_request']['temperature'])
+        override = pricing_bound(16, 0, 7, engine='baseline', model_id=model, models=models, max_output_tokens=2048)
+        self.assertEqual(override['reserved_usd'], 6.5408)
+        with self.assertRaises(ValueError):
+            pricing_bound(16, 0, 6, engine='baseline', model_id=model, models=models, max_output_tokens=2048)
+
+    def test_generation_cap_cannot_be_silently_ignored_by_jev(self):
+        with patch('jev_ios.cli.AxeDevice') as device, contextlib.redirect_stdout(io.StringIO()):
+            status = main(['run','--udid','fixture','--bundle-id','example.app', '--goal','Finish',
+                           '--expect-label','Finished','--baseline-max-output-tokens','2048'])
+        self.assertEqual(status, 1)
+        device.assert_not_called()
+
+    def test_comparison_passes_output_override_to_admission_and_execution(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'scenario.json'
+            path.write_text(json.dumps({'schema':'jev-ios/scenario/v1','name':'fixture','goal':'Finish',
+                                        'expect_labels':['Finished']}))
+            with patch('jev_ios.cli.model_catalog', return_value=[]), \
+                 patch('jev_ios.cli.pricing_bound', return_value={'reserved_usd':0}) as price, \
+                 patch('jev_ios.comparison.run_comparison', return_value={'runs':[{'status':'verified'}]*2}) as compare, \
+                 patch('jev_ios.comparison_report.write_comparison_report'), contextlib.redirect_stdout(io.StringIO()):
+                status = main(['compare','--scenario',str(path),'--udid','fixture','--bundle-id','example.app',
+                               '--start-label','Home','--output-dir',directory+'/new','--pairs','1',
+                               '--baseline-model','openai/gpt-6-astra-fast','--baseline-max-output-tokens','2048'])
+            self.assertEqual(status, 0)
+            self.assertTrue(all(call.kwargs['max_output_tokens'] == 2048 for call in price.call_args_list))
+            self.assertEqual(compare.call_args.kwargs['baseline_max_output_tokens'], 2048)
+            self.assertEqual(compare.call_args.kwargs['baseline_model'], 'openai/gpt-6-astra-fast')
+
     def test_interrupted_partial_comparison_cannot_return_success(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / 'scenario.json'

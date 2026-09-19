@@ -168,6 +168,27 @@ class ComparisonTests(unittest.TestCase):
         self.assertEqual(result["summary"]["backends"]["jev"]["unknown_cost_runs"], 1)
         self.assertEqual(result["summary"]["backends"]["jev"]["requests_without_timing"], 1)
 
+    def test_astra_manifest_and_adapter_share_the_exact_admitted_profile(self):
+        from jev_ios.model_profiles import resolve_profile
+        profile = resolve_profile("openai/gpt-6-astra-fast", max_output_tokens=2048)
+        self.pricing["baseline"]["baseline_request"] = profile.metadata()
+        result = self.run_fixture(pairs=1, baseline_model=profile.model, baseline_max_output_tokens=2048)
+        self.assertEqual(result["settings"]["baseline_request"], profile.metadata())
+        self.assertEqual(result["settings"]["request_timeout_seconds"], 10)
+        baseline = FakeModel.instances[1]
+        self.assertEqual(baseline.kwargs["model"], profile.model)
+        self.assertEqual(baseline.kwargs["max_output_tokens"], 2048)
+        self.assertEqual(baseline.kwargs["options"].timeout_seconds, 10)
+        self.assertEqual(result["runs"][1]["model"], profile.model)
+
+    def test_changed_generation_limit_rejects_before_artifacts_or_device(self):
+        from jev_ios.model_profiles import resolve_profile
+        self.pricing["baseline"]["baseline_request"] = resolve_profile("openai/gpt-6-astra").metadata()
+        with self.assertRaisesRegex(ValueError, "admitted model budget"):
+            self.run_fixture(baseline_model="openai/gpt-6-astra", baseline_max_output_tokens=2048)
+        self.assertEqual(FakeDevice.instances, [])
+        self.assertFalse(self.output.exists())
+
     def test_setup_failure_invalidates_pair_and_does_not_call_model(self):
         FakeDevice.plans = [DeviceError("App reset failed safely")]
         result = self.run_fixture(pairs=1)
@@ -316,6 +337,22 @@ class SummaryTests(unittest.TestCase):
         self.assertIsNone(_cost_stats(usage, 2, pricing)["estimated_cost_usd"])
         self.assertIsNone(_cost_stats(usage, 1, {"input_rate_per_million": 2, "output_rate_per_million": 4})["estimated_cost_usd"])
         self.assertIsNone(_cost_stats([{"inputTokens": 10}], 1, pricing)["estimated_cost_usd"])
+
+    def test_cache_writes_are_priced_separately_and_reasoning_not_double_counted(self):
+        pricing = {"input_rate_per_million": 10, "output_rate_per_million": 50,
+                   "cache_read_rate_per_million": 1, "cache_write_rate_per_million": 12.5}
+        usage = {"inputTokens": 100, "outputTokens": 50, "cacheReadInputTokens": 20,
+                 "cacheWriteInputTokens": 30, "reasoningOutputTokens": 40}
+        result = _cost_stats([usage], 1, pricing)
+        self.assertEqual(result["estimated_cost_usd"], .003395)
+        self.assertEqual(result["output_tokens"], 50)
+        del usage["cacheWriteInputTokens"]
+        result = _cost_stats([usage], 1, pricing)
+        self.assertIsNone(result["estimated_cost_usd"])
+        self.assertEqual(result["input_tokens"], 100)
+        self.assertEqual(result["output_tokens"], 50)
+        usage["cacheWriteInputTokens"] = 90
+        self.assertIsNone(_cost_stats([usage], 1, pricing)["estimated_cost_usd"])
 
     def test_start_change_rejected_before_inference_invalidates_other_pairs(self):
         rows = [self.run_row("jev", 1000), self.run_row("baseline", 2000),

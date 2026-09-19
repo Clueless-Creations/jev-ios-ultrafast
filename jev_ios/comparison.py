@@ -13,6 +13,7 @@ import time
 
 from .device import AxeDevice, DeviceError
 from .model import JevModel, MODEL, ModelError, ModelOptions
+from .model_profiles import resolve_profile
 from .recording import VideoRecorder
 from .runner import Runner
 from .scenario import Scenario
@@ -95,18 +96,25 @@ def _cost_stats(usage, calls, pricing):
             complete = False
             continue
         values = [entry.get("inputTokens"), entry.get("outputTokens"), entry.get("cacheReadInputTokens", 0)]
+        # Models with a separate cache-write tariff need reported write usage.
+        # Missing usage cannot silently be priced as ordinary input.
+        written = entry.get("cacheWriteInputTokens", None if "cache_write_rate_per_million" in pricing else 0)
         if any(type(value) is not int or value < 0 for value in values) or values[2] > values[0]:
             complete = False
             continue
         incoming, outgoing, cached = values
         for key, value in zip(counts, values):
             counts[key] += value
+        if type(written) is not int or written < 0 or cached + written > incoming:
+            complete = False
+            continue
         rates = [pricing.get("input_rate_per_million"), pricing.get("output_rate_per_million", 0),
-                 pricing.get("cache_read_rate_per_million") if cached else 0]
+                 pricing.get("cache_read_rate_per_million") if cached else 0,
+                 pricing.get("cache_write_rate_per_million") if written else 0]
         if any(not _finite(rate) for rate in rates):
             complete = False
             continue
-        cost += ((incoming - cached) * rates[0] + outgoing * rates[1] + cached * rates[2]) / 1_000_000
+        cost += ((incoming - cached - written) * rates[0] + outgoing * rates[1] + cached * rates[2] + written * rates[3]) / 1_000_000
     return {**counts, "estimated_cost_usd": round(cost, 9) if complete else None}
 
 
@@ -179,7 +187,7 @@ def _write_manifest(directory, manifest):
 
 def run_comparison(*, scenario, udid, bundle_id, output_dir, api_key, pricing,
                    baseline_model="openai/gpt-5.4-nano", pairs=3, start_labels,
-                   record_video=True, emit=None):
+                   record_video=True, emit=None, baseline_max_output_tokens=None):
     """Run each scheduled attempt once; callers must first authorize pricing."""
     from .baseline import ChatCompletionModel
     if not isinstance(scenario, Scenario):
@@ -194,6 +202,10 @@ def run_comparison(*, scenario, udid, bundle_id, output_dir, api_key, pricing,
         raise ValueError("Comparison requires pricing metadata for both backends")
     if not isinstance(baseline_model, str) or not baseline_model.strip():
         raise ValueError("Comparison requires an explicit baseline model")
+    baseline_profile = resolve_profile(baseline_model, max_output_tokens=baseline_max_output_tokens)
+    admitted_request = pricing["baseline"].get("baseline_request")
+    if admitted_request is not None and admitted_request != baseline_profile.metadata():
+        raise ValueError("Comparison request profile must match the admitted model budget")
     directory = Path(output_dir)
     directory.mkdir(parents=True, exist_ok=False, mode=0o700)
     portable = {"schema": scenario.schema, "name": scenario.name, "goal": scenario.goal,
@@ -207,7 +219,7 @@ def run_comparison(*, scenario, udid, bundle_id, output_dir, api_key, pricing,
                     "record_video": record_video, "min_probability": 0,
                     "confidence_policy": "Disabled for both backends; generated JSON has no calibrated choice probability",
                     "request_timeout_seconds": 10, "max_request_bytes": 24_000,
-                    "baseline_request": {"temperature": 0, "reasoning_effort": "none", "max_output_tokens": 128},
+                    "baseline_request": baseline_profile.metadata(),
                     "timing_boundary": "Runner start through final label verification; excludes reset, initial stability, credentials, pricing, and recording setup/finalization.",
                     "reset": "simctl launch --terminate-running-process; application data preserved",
                     "model_connections": "Fresh per attempt; reused within an attempt",
@@ -254,7 +266,8 @@ def run_comparison(*, scenario, udid, bundle_id, output_dir, api_key, pricing,
                         recorder.start()
                     model_options = ModelOptions(max_calls=scenario.max_steps)
                     model = JevModel(options=model_options, api_key=api_key) if backend == "jev" else ChatCompletionModel(
-                        model=baseline_model, options=model_options, api_key=api_key)
+                        model=baseline_model, options=model_options, api_key=api_key,
+                        max_output_tokens=baseline_profile.max_output_tokens)
                     row["setup_status"] = "ready"
                     row["setup_elapsed_ms"] = round((time.perf_counter() - setup_started) * 1000, 1)
                     record({"type": "session", "id": identifier, "backend": backend, "model": model_name,

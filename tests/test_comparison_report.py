@@ -96,6 +96,19 @@ class ComparisonReportTests(unittest.TestCase):
         self.assertEqual(source.count("</script>"), 2)
         self.assertEqual(embedded_data(source)["scenario"]["goal"], hostile)
 
+    def test_astra_profile_and_generation_usage_survive_report_allowlists(self):
+        from jev_ios.model_profiles import resolve_profile
+        data = manifest()
+        profile = resolve_profile("openai/gpt-6-astra")
+        data["settings"]["baseline_request"] = profile.metadata()
+        data["pricing"]["baseline"]["cache_write_rate_per_million"] = 12.5
+        data["runs"][1]["usage"][0].update(cacheWriteInputTokens=10, reasoningOutputTokens=12)
+        actual = embedded_data(self.write(data))
+        self.assertEqual(actual["settings"]["baseline_request"], profile.metadata())
+        self.assertEqual(actual["pricing"]["baseline"]["cache_write_rate_per_million"], 12.5)
+        self.assertEqual(actual["runs"][1]["usage"][0]["reasoningOutputTokens"], 12)
+        self.assertEqual(actual["runs"][1]["usage"][0]["cacheWriteInputTokens"], 10)
+
     def test_unknown_fields_ui_trees_and_credentials_are_not_embedded(self):
         marker = "PRIVATE_FIXTURE_DO_NOT_EMBED"
         data = manifest()

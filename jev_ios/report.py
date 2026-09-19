@@ -58,7 +58,7 @@ def _result(raw):
     if not isinstance(usage, list) or len(usage) > 30 or any(not isinstance(item, dict) for item in usage):
         raise ValueError("Report usage must be a bounded list of token-count objects")
     result["usage"] = [{key: _number(value, "token count", integer=True) for key, value in item.items()
-                        if key in {"inputTokens", "outputTokens", "totalTokens", "cacheReadInputTokens"}} for item in usage]
+                        if key in {"inputTokens", "outputTokens", "totalTokens", "cacheReadInputTokens", "cacheWriteInputTokens", "reasoningOutputTokens"}} for item in usage]
     for key in ("verification", "final_screen_hash"):
         if raw.get(key) is not None:
             result[key] = _text(raw[key], key)
