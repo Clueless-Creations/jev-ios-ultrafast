@@ -1,42 +1,45 @@
 # Jev iOS Ultrafast
 
-Give an iOS Simulator a goal. Jev chooses an action and a control from the current accessibility tree; a local Mac runner checks and executes the choice. Each decision takes one model request. Screenshots stay outside the model loop.
+Give an iOS Simulator a goal. Jev picks a control from its accessibility tree, and a local Mac runner checks and executes the choice. One model request per decision, with no screenshots in the model loop.
 
-Inspired by [Browser Use's Jev Ultrafast](https://github.com/browser-use/jev-ultrafast), this standalone Python package includes a native trip-planning app, reusable scenarios, NDJSON traces, and a local HTML run report. It uses Vercel AI Gateway for Jev and [AXe](https://github.com/cameroncooke/AXe) for simulator input. The runner has no Python runtime dependencies and needs no web deployment.
+[Watch the comparison](https://clueless-creations.github.io/jev-ios-ultrafast/media/comparison.html) · [Try it](#try-it-on-your-mac) · [Use your app](#run-another-app) · [Call from Brigade](#extend-or-call-from-brigade) · [MIT license](LICENSE)
 
-## Compare with a standard model
+<a href="https://clueless-creations.github.io/jev-ios-ultrafast/media/comparison.html"><img src="docs/media/comparison-preview.gif" alt="Jev and GPT-5.4 Nano planning the same Lisbon trip in an iOS Simulator at normal speed" width="100%" /></a>
 
-The same runner can use GPT-5.4 Nano to generate a validated JSON action instead of Jev's choice evaluation. Both receive the same accessibility state and offered controls, execute through the same device adapter, and must pass the same local checks. Run a fixed, alternating three-pair comparison with recordings:
+Jev on the left and GPT-5.4 Nano on the right, playing at 1×. The two recordings start at the same point in each run; the attempts ran sequentially on one simulator. [Open the replay](https://clueless-creations.github.io/jev-ios-ultrafast/media/comparison.html) to choose any pair, scrub both recordings, and inspect the results. A [still preview](docs/media/comparison-poster.png) is also available.
 
-```sh
-jev-ios compare \
-  --scenario scenarios/showcase.json \
-  --udid "$SIMULATOR_UDID" --bundle-id org.example.jevsimdemo \
-  --start-label Daybreak --start-label Lisbon --start-label Kyoto \
-  --pairs 3 --budget-usd 1 \
-  --vercel-project YOUR_EXISTING_VERCEL_PROJECT \
-  --output-dir runs/comparison-01
-```
+## Compare Jev and GPT-5.4 Nano
 
-Open `runs/comparison-01/comparison.html` for synchronized normal-speed replays, every attempt, completion rates, task time, model latency, and estimated cost. The command resets the app process before each attempt and checks the starting screen. An arbitrary app may need its own fixture-data reset. Read the [comparison protocol](docs/comparison.md) before comparing another app.
+> Plan a slow Saturday in Lisbon. Choose Design & coffee, walk, start at 10:00, and save the itinerary.
 
-**Recorded comparison:** Jev passed 5/6 attempts; GPT-5.4 Nano passed 2/6. The sole pair where both passed took **14.65 s versus 25.64 s** (1.75×). Four baseline attempts hit HTTP 429; one Jev attempt timed out. This is one local fixture, with one mutually successful pair—not a general speed claim. [Open the paired replay](docs/media/comparison.html) · [All results and measurement limits](docs/comparison.md#recorded-results--september-19-2026).
+Both engines get the same accessibility state, offered controls, and goal. Both use the same executor and must pass the same local label checks. The runner resets Daybreak before each attempt and alternates which engine goes first.
 
-## Watch it run
+| Recorded September 19, 2026 | Jev | GPT-5.4 Nano |
+| --- | ---: | ---: |
+| Task time in the sole pair where both passed | 14.65 s | 25.64 s |
+| Actions in that pair | 7 | 7 |
+| Verified attempts across all six pairs | 5 / 6 | 2 / 6 |
+| Median response time, usable responses only | 242 ms | 922 ms |
 
-**Seven native actions in 16.61 seconds. Median Jev response: 224 ms.** One recorded run on iOS 26.2 Simulator, including observation, input, and final verification. Model response time is only part of the total.
+The baseline took 1.75× as long in that one pair. Four baseline attempts hit HTTP 429; one Jev attempt ended in a connection failure or timeout. Those failures limit what this small test says about speed and reliability. All 12 attempts remain in the report, including failures.
 
-[Normal-speed video](docs/media/showcase.mp4) · [Downloadable interactive report](docs/media/showcase.html) · [Measurements and limits](docs/verification.md)
+[All results and measurement limits](docs/comparison.md#recorded-results--september-19-2026) · [Machine-readable results](docs/media/comparison.json) · [Single-run replay with decisions](https://clueless-creations.github.io/jev-ios-ultrafast/media/showcase.html)
 
-The report embeds the video, with clickable decisions and per-call timings. Download it and open it locally. The goal names the desired trip; it contains no sequence of target IDs or hardcoded tap coordinates.
+## What you can run
 
-## Run the showcase
+This repo includes the Python CLI, the native Daybreak fixture, portable JSON scenarios, and a Node wrapper for calling the runner from Brigade. It uses [TypeSafe's Jev](https://docs.typesafe.ai/introduction) through Vercel AI Gateway and [AXe](https://github.com/cameroncooke/AXe) for simulator input. The Python package has no runtime dependencies and needs no web deployment.
+
+The model chooses among observed target IDs. The runner resolves coordinates locally, checks the screen again before input, and verifies the expected labels afterward. Recordings, per-call timings, and execution receipts go into a local HTML report. [Read the loop](jev_ios/runner.py) or the [architecture](docs/architecture.md).
+
+## Try it on your Mac
 
 You need macOS, Xcode with an iOS Simulator runtime, Python 3.11+, and an installed AXe binary. An AXe binary bundled with XcodeBuildMCP is detected automatically; set `JEV_IOS_AXE` to select another installation. The bundled app's build script targets Apple Silicon.
 
-From this checkout:
+Clone the repo and install the CLI:
 
 ```sh
+git clone https://github.com/Clueless-Creations/jev-ios-ultrafast.git
+cd jev-ios-ultrafast
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -e .
@@ -61,13 +64,31 @@ jev-ios run \
   --report runs/daybreak.html
 ```
 
-The scenario asks Jev to plan a slow Saturday in Lisbon, choose Design & coffee, walk, start at 10:00, and save the itinerary. Daybreak contains local fixture data. The final labels identify both the saved trip and the selected preferences.
+Daybreak contains local fixture data. The final labels identify both the saved trip and the selected preferences.
 
 Open `runs/daybreak.html` to review the run and its recording. The trace records observations, choices, model timings, execution receipts, and the final label check. Artifact paths are used once; choose new filenames for the next run. Restart Daybreak with the launch command above to return to its home screen.
 
 Authentication accepts `AI_GATEWAY_API_KEY` or `VERCEL_OIDC_TOKEN` in the process environment. With either set, omit `--vercel-project`. That option instead obtains a temporary development token through an existing Vercel CLI login and project. Tokens stay in memory. See [Vercel's authentication docs](https://vercel.com/docs/ai-gateway/authentication-and-byok/oidc).
 
 Before inference, the CLI reads provider pricing and checks a conservative estimate against `--budget-usd` (default $0.10 for a single run, $1 for a comparison cohort). This admission check is separate from a provider billing cap. Jev uses the [evaluation API](https://vercel.com/docs/ai-gateway/modalities/evaluation), with no automatic model retries. Published run results and their limits belong in [verification](docs/verification.md).
+
+## Run the comparison yourself
+
+After the setup above, use the same scenario with both engines:
+
+```sh
+jev-ios compare \
+  --scenario scenarios/showcase.json \
+  --udid "$SIMULATOR_UDID" --bundle-id org.example.jevsimdemo \
+  --start-label Daybreak --start-label Lisbon --start-label Kyoto \
+  --pairs 3 --budget-usd 1 \
+  --vercel-project YOUR_EXISTING_VERCEL_PROJECT \
+  --output-dir runs/comparison-01
+```
+
+Open `runs/comparison-01/comparison.html` for synchronized normal-speed replays, every attempt, completion rates, task time, model latency, and estimated cost. The command restarts the app process before each attempt and checks the starting screen. Another app may need a fixture-data reset as well.
+
+The baseline is GPT-5.4 Nano with reasoning disabled and a strict JSON action schema. `--baseline-model` accepts another compatible model; its settings and results belong in a separate comparison. Read the [comparison protocol](docs/comparison.md) before changing models or apps.
 
 ## Run another app
 
@@ -105,7 +126,11 @@ Apps need usable accessibility controls. Canvas-only interfaces, missing Flutter
 
 Raw traces, screenshots, and recordings belong in ignored `runs/`. A model-selected action carries no permission to purchase, send messages, or change production data.
 
-## Development
+## Contribute
+
+Fork the repo, create a branch, and open a pull request. Scenario examples, model and device adapters, and reproducible bug reports are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) for the workflow and evidence to include. Maintainers review changes before merging.
+
+Run the checks locally:
 
 ```sh
 python3 -m unittest discover -s tests -v
@@ -113,4 +138,10 @@ node --check examples/brigade-call.mjs
 node --test tests/test_brigade.mjs
 ```
 
-Tests run locally without inference or simulator input. Daybreak uses UIKit and applies the native controls, typography, navigation, and simulator review guidance in [Appllama's design skill](https://github.com/Appllama/appllama-skills/tree/dd5caaec3d5d50ad7fc0324da238119c6b7c3707). Source and design provenance are in [NOTICE.md](NOTICE.md).
+Tests run without inference or simulator input.
+
+## Credits and license
+
+Inspired by [Browser Use's Jev Ultrafast](https://github.com/browser-use/jev-ultrafast). Daybreak uses UIKit and applies the native controls, typography, navigation, and simulator review guidance in [Appllama's design skill](https://github.com/Appllama/appllama-skills/tree/dd5caaec3d5d50ad7fc0324da238119c6b7c3707). Source and design provenance are in [NOTICE.md](NOTICE.md).
+
+[MIT licensed](LICENSE). You can use, modify, and distribute the code under its terms.
