@@ -1,0 +1,8 @@
+{
+  "schema": "jev-ios/scenario/v1",
+  "name": "daybreak-kyoto-gardens",
+  "goal": "Plan a Saturday in Kyoto focused on Art & gardens, travel by Cycling, start at 11:00, then build and save the weekend itinerary. Scroll when the next control is offscreen.",
+  "expect_labels": ["Kyoto weekend saved", "Art & gardens · Cycling · 11:00"],
+  "allow_scroll": true,
+  "max_steps": 20
+}

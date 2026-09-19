@@ -1,0 +1,14 @@
+.env*
+!.env.example
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+build/
+dist/
+runs/
+.DS_Store
+.reference/
+*.mov
+*.mp4
+!docs/media/*.mp4

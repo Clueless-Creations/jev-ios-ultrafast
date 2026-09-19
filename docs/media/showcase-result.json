@@ -1,0 +1,85 @@
+{
+  "date": "2026-09-19",
+  "scenario": "scenarios/showcase.json",
+  "simulator_runtime": "iOS 26.2",
+  "entrypoint": "examples/brigade-call.mjs",
+  "result": {
+    "type": "result",
+    "schema": "jev-ios/run/v1",
+    "status": "verified",
+    "reason": "exact_labels_visible",
+    "goal": "Plan a slow Saturday in Lisbon with Design & coffee, get around by Walking, start at 10:00, then build and save the weekend itinerary.",
+    "expected_labels": [
+      "Lisbon weekend saved",
+      "Design & coffee · Walking · 10:00"
+    ],
+    "matched_labels": [
+      "Lisbon weekend saved",
+      "Design & coffee · Walking · 10:00"
+    ],
+    "actions_executed": 7,
+    "model_calls": 7,
+    "elapsed_ms": 16608.8,
+    "model_ms": [
+      322.869,
+      433.006,
+      270.091,
+      217.468,
+      193.064,
+      224.14,
+      211.391
+    ],
+    "usage": [
+      {
+        "inputTokens": 1723,
+        "outputTokens": 86
+      },
+      {
+        "inputTokens": 1701,
+        "outputTokens": 80
+      },
+      {
+        "inputTokens": 2228,
+        "outputTokens": 94
+      },
+      {
+        "inputTokens": 2812,
+        "outputTokens": 126
+      },
+      {
+        "inputTokens": 3024,
+        "outputTokens": 127
+      },
+      {
+        "inputTokens": 3243,
+        "outputTokens": 127
+      },
+      {
+        "inputTokens": 3118,
+        "outputTokens": 80
+      }
+    ],
+    "final_screen_hash": "761cc97fd898ce8868411a697fa815d0921944921b22b0ff36c55692d679ad9e",
+    "verification": "Exact visible accessibility labels; not backend, visual quality, or release acceptance."
+  },
+  "median_model_ms": 224.14,
+  "estimated_model_usd": 0.0007496579999999999,
+  "video": "showcase.mp4",
+  "video_note": "Full capture, original timeline; resized to 660px wide and re-encoded. No cuts or playback acceleration.",
+  "source_sha256": {
+    "demo/App.swift": "736f38d84dc252baceb92a16c3337a5fbe42b6ea64a6095ce870de12d7a92c65",
+    "examples/brigade-call.mjs": "bb51502df7c0bd2c7a35734ac23c9de8978223b50bdbfff557d2393f8b259943",
+    "jev_ios/__init__.py": "b7637280b272fa05ebb0e6e2c7ca3adac0ddc30772bb81c4e6f294703d9e1c9c",
+    "jev_ios/__main__.py": "935a1c1166b0c1ea35a82256345000bf2c73ded718d77773bc27a71ecce28f7d",
+    "jev_ios/cli.py": "8de80ada759bc877b51a64ee249f71d5ca93b2d1611f14348b696381e2a89fe7",
+    "jev_ios/device.py": "b0b14be50f5cec064e9c00721fc9d4291601c9fbe9c475b0a4ed25c8b100ae37",
+    "jev_ios/model.py": "0b6fe69ab9fb1cb82b72798b4d6683496acba2bba98976d7fde96ac3b236085c",
+    "jev_ios/protocols.py": "3c00a33f6df6be16b0afda05ce702a25f3f0801461131fe78f95718387085d9e",
+    "jev_ios/recording.py": "53e9d8198704f02500f889404d6f075c7e7cd1eb64e1d6bbd319b2451d54df9c",
+    "jev_ios/report.py": "6b2255ff071fb2f0c0d80c38023367919ae8a1f18a00ae4425c8c9eb5b09c923",
+    "jev_ios/runner.py": "f55424af769298c2b2913fc592c3ff7498b1d9d59c2ab8e9429dd64779ccb47f",
+    "jev_ios/scenario.py": "b330454a3915e68c62f626c59d0fd1bd68adc3332bdfab9f590847f3d9c64d19",
+    "scenarios/showcase.json": "87bd238d91ec26cdcad31568043ff8c3ceafd97f01aa15fcf7c76b30bcecdde9"
+  },
+  "source_fingerprints_note": "Publication source fingerprints. Initial-connect deadline refinement and report captions were finalized after this recording; the native app and scenario match the recorded build."
+}
