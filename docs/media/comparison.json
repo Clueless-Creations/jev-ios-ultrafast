@@ -1039,7 +1039,7 @@
     "median_paired_speedup": 1.75
   },
   "provenance": {
-    "source_commit": "ec9e3589575332b906a4289f06eff2a6b6a45192",
+    "source_commit": "a021dad2b73f98d7b39381a8f2f086f5479ec3fa",
     "app_binary_sha256": "7e06098a8ab1c6a4e4db987832d73d686e644220a13d4b6c35ab48be29840e1d",
     "scenario_sha256": "87bd238d91ec26cdcad31568043ff8c3ceafd97f01aa15fcf7c76b30bcecdde9",
     "ios_runtime": "26.2",
@@ -1060,7 +1060,8 @@
     "preflight": "One synthetic DONE request per actual adapter immediately before the first cohort, excluded from all results. Baseline parameter compatibility probes were also excluded.",
     "notes": "Second complete three-pair cohort scheduled after the first had no mutually verified pairs. Same runtime, app, settings and fixed order. All twelve attempts retained; no individual retries or substitutions.",
     "first_observation_elements_sha256": "e5dd70a719148a68d478f3f77f2eb8297387528df5c2fdc9f09b83e5ca27ffc9",
-    "post_measurement_fixes": "Subsequent changes harden first-observation matching, recording interruption cleanup, and report playback. Decision backends and runner are unchanged from the measured revision."
+    "post_measurement_fixes": "Subsequent changes harden first-observation matching, recording interruption cleanup, and report playback. Decision backends and runner are unchanged from the measured revision. Public source uses normalized author metadata; the measured source tree is unchanged.",
+    "source_tree": "1a206e00dfe7ca2de7371b37752708ecb7025231"
   },
   "media_provenance": [
     {

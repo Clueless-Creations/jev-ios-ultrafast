@@ -6,8 +6,15 @@ build-backend = "setuptools.build_meta"
 name = "jev-ios-ultrafast"
 version = "0.2.0"
 description = "A local iOS Simulator action loop using Jev's indexed decisions"
+readme = "README.md"
+license = {file = "LICENSE"}
 requires-python = ">=3.11"
 dependencies = []
+
+[project.urls]
+Repository = "https://github.com/Clueless-Creations/jev-ios-ultrafast"
+Demo = "https://clueless-creations.github.io/jev-ios-ultrafast/"
+Issues = "https://github.com/Clueless-Creations/jev-ios-ultrafast/issues"
 
 [project.scripts]
 jev-ios = "jev_ios.cli:main"
