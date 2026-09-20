@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "jev-ios-ultrafast"
-version = "0.2.0"
-description = "A local iOS Simulator action loop using Jev's indexed decisions"
+version = "0.3.0"
+description = "Bounded Jev verification across local and SSH iOS Simulator pools"
 readme = "README.md"
 license = {file = "LICENSE"}
 requires-python = ">=3.11"

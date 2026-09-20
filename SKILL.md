@@ -1,102 +1,37 @@
 ---
 name: jev-ios
-description: Use Jev iOS Ultrafast to map an iOS user flow into a bounded simulator scenario, run it, and interpret verification evidence. Use after user-facing iOS changes, for smoke/release flows, or when an agent needs to navigate an app without spending its own reasoning loop on every UI action.
+description: Inspect an iOS test app, use bounded Jev learning for orientation, translate product intent into exact-label scenarios, select affected tests, and run local or SSH Simulator pools without spawning additional coding agents.
 ---
 
 # Jev iOS
 
-Jev is the simulator interaction worker underneath the coding agent. Keep ownership clear:
+You own product intent and acceptance criteria. Jev chooses among observed controls. The Python runner owns device input, freshness checks, and independent final-label verification. The scheduler owns device leases, fixture locks, API limits, and artifacts.
 
-- **You own intent:** what user behavior should work and what observable state proves it.
-- **Jev owns navigation:** choosing among controls actually exposed by the app.
-- **The local runner owns execution:** taps, typing, scrolling, freshness checks, and final label verification.
-- **Do not use Jev as a substitute for unit/integration tests or backend assertions.**
+Use this tool for short semantic navigation and smoke flows. Keep logic tests, backend assertions, visual review, and product acceptance in their own tools. Never claim that every possible user journey has been tested.
 
-## Choose the device path
+## Orient once
 
-Prefer the **native simulator adapter** when the agent is running on the developer's Mac. It uses the `jev-ios` CLI and Apple's simulator tooling directly. Do not install or configure XcodeBuildMCP merely to use Jev.
-
-Use **MobAI as an optional transport** when the environment already uses MobAI or needs its broader device surface, such as real devices, Android, MCP/HTTP control, or cloud-agent workflows. Keep Jev scenarios and decision semantics unchanged across transports.
-
-Codex and Claude Code should both consume this same skill and CLI contract. Do not create agent-specific scenario formats.
-
-## Start here
-
-If this app has no `.jev-ios/` directory:
-
-```sh
-jev-ios init --bundle-id <bundle-id>
-```
-
-Then inspect the app:
-
-```sh
-jev-ios inspect --udid "$SIMULATOR_UDID" --bundle-id <bundle-id> --launch
-```
-
-Use the observation to create or refine `.jev-ios/smoke.json`.
-
-## Learn the app before mapping scenarios
-
-For an unfamiliar app, do not make the expensive coding agent manually inspect every screen. Use Jev as the fast semantic scout first.
-
-Boot a simulator and run:
+1. Read the app's requirements, existing tests, and agent guidance. Identify the authorized fixture app, installed build, simulator UUIDs, and expected starting state.
+2. Run `jev-ios doctor` and `jev-ios devices`. These do not make model requests. Build and install the app with the project's existing workflow.
+3. Run `jev-ios init --bundle-id com.example.app` in the app repo if no Jev scaffold exists. It preserves existing user files. Read `.jev-ios/AGENT.md`; add a pointer from existing AGENTS.md or CLAUDE.md deliberately, not by overwriting it.
+4. Inspect the running app with `jev-ios inspect --udid "$SIMULATOR_UDID" --bundle-id com.example.app --launch`. Labels and model target IDs come from observations, not guesses from source names or screenshots.
+5. For unfamiliar navigation, use Jev as a scout within an explicitly approved navigation allow-list. Without one, learning is observe-only and makes no model call.
 
 ```sh
 jev-ios learn \
-  --udid "$SIMULATOR_UDID" \
-  --bundle-id <bundle-id> \
-  --output .jev-ios/app-map.json
+  --udid "$SIMULATOR_UDID" --bundle-id com.example.app \
+  --allow-label Settings --allow-label Notifications --allow-label Back \
+  --max-steps 8 --budget-usd 0.10 \
+  --output .jev-ios/app-map-settings.json
 ```
 
-Learning mode launches the app and lets Jev sample its visible navigation using the same observed-target and freshness guarantees as normal runs. It records discovered accessibility state and observed transitions into a compact app map. It intentionally does not type, scroll, purchase, submit, message, delete, or try to exhaustively crawl the product.
+Replace these labels with controls you have inspected and authorized. Do not infer safety from a name or ask Jev to approve its own action surface. Learning does not type, scroll, or operate switches. Use fixture data and read the compact map instead of loading every raw UI dump into your context.
 
-Use `.jev-ios/app-map.json` as **orientation, not truth**. It is a bounded sample of reachable semantic UI from the launch state.
+Maps are sampled orientation, not requirements. App-map v2 uses semantic IDs that exclude coordinates, PIDs and control values. Runtime target IDs and screen fingerprints are observation-specific: never replay them across devices or use them as stable selectors. Regenerate v1 maps; do not silently convert their hash semantics.
 
-### Agent workflow for an unfamiliar app
+## Map intent to evidence
 
-1. Read existing product tests and app-level guidance so you know the intended product behavior.
-2. Run `jev-ios learn` to cheaply discover the app's visible semantic surface.
-3. Read the compact app map instead of carrying raw accessibility dumps into context.
-4. Identify the destination relevant to the requested change.
-5. Use `jev-ios inspect` on that area when exact current labels are needed.
-6. Translate the requested behavior into a focused scenario.
-7. Run the scenario after implementation.
-8. If the app map is stale because navigation changed materially, regenerate it deliberately.
-
-Do not turn learning mode into an autonomous crawler. Its purpose is to save the coding agent context and reasoning on routine app orientation.
-
-### What to extract from the map
-
-Look for:
-
-- stable destination labels;
-- likely navigation controls and the screens they revealed;
-- repeated/global controls that should not be mistaken for success evidence;
-- accessibility gaps that will make verification weak;
-- the shortest semantic path relevant to the requested feature.
-
-Prefer expected labels that distinguish the destination from every previously learned screen.
-
-## Turn product intent into a scenario
-
-Do not translate an implementation plan directly into taps. Start from a user-observable contract.
-
-Given a request such as:
-
-> Make sure a user can open notification settings and see the push-notification option.
-
-Map it as:
-
-1. **Goal:** describe the user outcome, not coordinates or a brittle tap script.
-2. **Expected labels:** choose exact labels that are visible only when the intended destination/state has been reached.
-3. **Allowed labels:** constrain taps when the flow should stay narrow. Leave empty only when broad navigation is intentional.
-4. **Scrolling:** enable only when the flow requires it.
-5. **Text:** provide fixture values explicitly. Never ask the model to invent sensitive or production data.
-6. **Step budget:** choose the smallest reasonable bound with a little recovery room.
-7. **Confidence:** keep the default unless there is measured reason to change it.
-
-Example:
+Describe a user outcome, not a coordinate script. Select exact final labels that distinguish the intended destination from the starting screen and global navigation. Inspect missing controls, overlays, accessibility semantics, and scrolling before changing expectations.
 
 ```json
 {
@@ -112,123 +47,65 @@ Example:
 }
 ```
 
-## Inspect before guessing
+Keep short step limits and the default confidence threshold unless evidence justifies a change. Use exact fixture strings for typing. The current adapter accepts printable US ASCII only, in empty non-secure fields.
 
-Accessibility labels are the contract with the device adapter. Never invent labels from screenshots, source names, or assumptions when the running app can be inspected.
+Author scenarios in the app repository. **Do not modify `jev_ios/scenario.py` to add a test.** It validates the shared contract; tests are JSON data. Remove all scaffold placeholders before planning.
 
-If the desired control is missing from `jev-ios inspect`, first determine whether:
+## Put scenarios in a suite
 
-- the app is on the wrong screen,
-- the control needs scrolling,
-- the UI lacks usable accessibility semantics,
-- a modal or overlay is blocking the expected surface.
+Read `docs/parallel-testing.md` in the installed Jev repository for the complete schema. A suite adds case IDs, starting labels, launch arguments, explicit source-path mappings, tags, critical status, and resource locks without changing scenario semantics.
 
-Fix app semantics when appropriate. Do not weaken verification to accommodate an inaccessible UI.
+Prepare known fixture state for every case. Relaunching a process is not resetting its database or backend. Use test-only launch arguments already supported by the app or provision fixtures outside Jev. Starting labels must be checked after relaunch before a model call.
 
-## Decide what belongs in Jev
+Keep `fixture_isolation: shared` until devices truly have independent accounts and data. Only then use `per_device`. Shared resources still need matching `resource_locks` names. These are cooperating locks on the coordinator, not a distributed backend lock service.
 
-Good Jev scenarios are short semantic flows:
+Mark release-critical tests explicitly. Map source globs from real ownership knowledge, not imagined dependencies. An unmapped change falls back to the full suite. Explicit `--only` and `--tag` filters restrict coverage and must be disclosed in the result.
 
-- reach a newly implemented screen;
-- exercise onboarding/settings/navigation;
-- reproduce a UI path around a bug fix;
-- verify a release-critical destination is reachable;
-- fill deterministic fixture data and verify the resulting UI state.
+## Plan, execute, summarize
 
-Keep these elsewhere:
-
-- pure logic → unit tests;
-- service/database behavior → integration tests;
-- exact pixels/visual regressions → visual tooling;
-- backend side effects → backend/API assertions;
-- destructive or production actions → do not delegate to this runner.
-
-## Run
-
-Prefer the generated wrapper:
+Use an explicit local/SSH pool or repeated `--udid` flags. `--devices auto` selects already booted local iOS simulators; it neither creates devices nor chooses an OS matrix for you. XcodeBuildMCP is not required. MobAI is not implemented as a Jev transport.
 
 ```sh
-.jev-ios/run-smoke.sh
+jev-ios plan --suite .jev-ios/suite.json --pool .jev-ios/pool.json --changed-since main
+jev-ios matrix --suite .jev-ios/suite.json --pool .jev-ios/pool.json \
+  --mode shard --parallel 4 --api-concurrency 2 --requests-per-second 4 --budget-usd 1
 ```
 
-For a targeted scenario:
+`shard` runs each selected case once on an available lane. `matrix` runs each selected case on every selected device. Always inspect a plan before a large matrix. A four-device matrix reserves for four executions per case; more lanes do not reduce the total inference work.
+
+The coordinator applies one conservative aggregate pricing admission, one request-rate limit, and one API-concurrency gate. Each device has a lease and independent model client. No extra frontier-agent sessions are launched. Provider authentication/rate-limit errors stop further fanout rather than retrying requests automatically.
+
+Read `summary.json` or the final `matrix_result` event first. Load individual traces only for relevant failures. Similar failure groups are shared symptoms, not established root causes. Report the selection scope, installed build provenance if supplied, devices, verified count, and unresolved outcomes.
+
+## Diagnose without erasing evidence
+
+Exit codes for matrix/verify: 0 means every selected cell has label evidence; 2 means not verified; setup/configuration errors use 1. Interrupted matrix runs use 130. Planning, init and observe-only learning returning 0 do not mean the app passed tests.
+
+Use the returned unique run directory. Never delete a previous trace just to reuse its filename. A failed or incomplete run is not made green by hiding a skipped cell or weakening an assertion.
 
 ```sh
-jev-ios run \
-  --scenario .jev-ios/smoke.json \
-  --udid "$SIMULATOR_UDID" \
-  --bundle-id <bundle-id> \
-  --launch \
-  --trace runs/jev-smoke.jsonl \
-  --report runs/jev-smoke.html
+jev-ios verify --manifest runs/<run-directory>/matrix.json
+jev-ios reproduce --manifest runs/<run-directory>/matrix.json --cell <cell-id>
 ```
 
-Exit code 0 means the runner observed all required labels after execution. It does not prove unobserved backend effects.
+Reproduction is dry by default. Classify the failure as product behavior, incorrect scenario intent, accessibility, fixture/start state, device transport, or provider error. Repair the responsible layer, restore the fixture, and add `--execute` only when ready to authorize a fresh run. Uncertain/cancelled input needs `--acknowledge-uncertain` after repair. This reruns intent, not old actions, and does not reinstall the original binary.
 
-## Interpret a nonzero result
+## Extend the narrowest layer
 
-Do not immediately rewrite code and do not immediately loosen the scenario.
-
-1. Read the terminal JSON event.
-2. Inspect `runs/jev-smoke.jsonl` for observations, choices, and execution receipts.
-3. Open `runs/jev-smoke.html` when a human-readable replay helps.
-4. Classify the problem:
-   - product behavior is wrong;
-   - scenario intent/labels are wrong;
-   - accessibility semantics are insufficient;
-   - simulator/device state is wrong;
-   - provider/model call failed.
-5. Fix the responsible layer.
-6. Re-run from a known app state.
-
-A scenario should change because the intended product contract changed or because it encoded that contract incorrectly, never merely because a run failed.
-
-## Python architecture
-
-When extending the tool rather than merely using it, route changes to the narrowest layer:
-
-| Need | Python surface |
+| Need | Surface |
 | --- | --- |
-| CLI command/options, artifacts, credentials | `jev_ios/cli.py` |
-| Scenario schema/defaults/validation | `jev_ios/scenario.py` |
-| Decision/execution/verification loop | `jev_ios/runner.py` |
-| Native Simulator observation/input | `jev_ios/device.py` |\n| Alternate device transports, including MobAI | implement `jev_ios/protocols.py` without changing scenario semantics |
-| Jev provider transport/choice validation | `jev_ios/model.py` |
-| Adapter interfaces | `jev_ios/protocols.py` |
-| HTML run evidence | `jev_ios/report.py` |
-| First-run project scaffold | `jev_ios/onboarding.py` |\n| Bounded semantic app learning | `jev_ios/learning.py` |
+| Add a user-flow check | Scenario JSON in the app repo |
+| Map tests to sources, fixtures, and devices | Suite/pool JSON; `jev_ios/suite.py` validates them |
+| CLI options and pricing admission | `jev_ios/cli.py`, `jev_ios/parallel_cli.py` |
+| Schedule lanes and bound API concurrency | `jev_ios/matrix.py` |
+| Cross-process device or fixture leases | `jev_ios/lease.py` |
+| Local Simulator or SSH device sessions | `jev_ios/fleet.py`, `jev_ios/remote.py` |
+| Semantic scouting and onboarding | `jev_ios/learning.py`, `jev_ios/onboarding.py` |
+| Device input and fresh observation | `jev_ios/device.py` |
+| Bounded action/verification loop | `jev_ios/runner.py` |
+| Jev transport and choice validation | `jev_ios/model.py` |
+| Aggregation and reports | `jev_ios/matrix_report.py`, `jev_ios/report.py` |
 
-Preserve these invariants:
+Read `AGENTS.md` and `docs/architecture.md` before runtime changes. Preserve observed target identity, fresh validation, finite confidence, bounded calls, secure-field redaction, and no replay after uncertain execution. No model output becomes a shell command, coordinate, credential, or authorization.
 
-- model output never becomes a shell command or arbitrary coordinate;
-- Jev chooses only among observed targets;
-- refresh state before executing a decision;
-- uncertain execution is not replayed;
-- model calls and steps remain bounded;
-- final success comes from fresh device observation, not the model saying it is done;
-- scenario files contain product intent and constraints, not provider credentials or host configuration.
-
-Read `docs/architecture.md` before changing these boundaries.
-
-## Typing
-
-The current AXe adapter accepts printable US ASCII into verified empty, non-secure fields. Use fixture values. If a requested flow requires unsupported typing, report that boundary rather than silently changing the scenario.
-
-## Before declaring success
-
-For changes to Jev itself, run:
-
-```sh
-python3 -m unittest discover -s tests -v
-node --check examples/brigade-call.mjs
-node --test tests/test_brigade.mjs
-```
-
-For changes to an app using Jev, report:
-
-- scenario used;
-- app/bundle target;
-- whether Jev verified the expected labels;
-- any evidence artifact needed to understand the result.
-
-Keep the result concise. The coding agent should consume the verification outcome, not drag the entire simulator transcript into its context.
+Keep tests offline. Do not describe mock-backed concurrency tests as live Simulator speed benchmarks. Do not add hosted GitHub Actions workflows. Run the repo's Python and Node checks and report exactly which validation was performed.

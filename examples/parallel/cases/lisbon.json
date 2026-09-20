@@ -1,0 +1,10 @@
+{
+  "schema": "jev-ios/scenario/v1",
+  "name": "Daybreak Lisbon itinerary",
+  "goal": "Plan a slow Saturday in Lisbon with Design & coffee, get around by Walking, start at 10:00, then build and save the weekend itinerary.",
+  "expect_labels": [
+    "Lisbon weekend saved",
+    "Design & coffee · Walking · 10:00"
+  ],
+  "max_steps": 16
+}
