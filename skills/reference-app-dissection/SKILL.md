@@ -31,6 +31,16 @@ study/
   adaptation.yaml              # optional target-product mapping
 ```
 
+## Operating loop
+
+Use this loop until the sampled design families are adequately explained:
+
+```text
+orient -> map -> capture -> measure -> abstract -> challenge -> handoff
+```
+
+After each abstraction pass, try to falsify your own rules with another state, another interaction, or a counterexample. Prefer a smaller rule that survives evidence over a broad rule that sounds elegant.
+
 The canonical spec must separate:
 
 1. **Observed facts**: directly visible or instrumented.
@@ -445,6 +455,85 @@ A strong handoff includes:
 - acceptance checks.
 
 The coding agent should read `patterns.yaml` and `DESIGN_REFERENCE.md` first, then pull detailed claims/evidence only when implementing the relevant surface.
+
+## 9. Agent efficiency and context discipline
+
+Do not dump the full evidence corpus into the coding agent's context.
+
+Use a three-level handoff:
+
+1. **Design constitution**: no more than roughly one page of the reference's core interaction philosophy.
+2. **Pattern index**: compact reusable rules with IDs, confidence, and acceptance tests.
+3. **Evidence on demand**: detailed claims, screenshots, clips, and traces fetched only when implementing a relevant pattern.
+
+The implementation agent should be able to ask questions like:
+
+- Which pattern governs secondary detail?
+- What motion family applies when content preserves spatial identity?
+- What are the verified cancellation rules for drag-to-dismiss?
+- Which typography roles are high confidence?
+- Which haptics are still unknown?
+
+Do not require it to replay the entire research session.
+
+## 10. Design fingerprints
+
+Create a compact fingerprint of the reference so that the target can be evaluated for philosophical similarity without pixel cloning.
+
+Capture qualitative or bounded dimensions such as:
+
+- density: sparse / balanced / dense;
+- hierarchy: typography-led / imagery-led / surface-led;
+- navigation depth: shallow / mixed / deep;
+- transient-surface preference: low / medium / high;
+- motion character: restrained / responsive / expressive;
+- continuity: discrete / mixed / spatially continuous;
+- gesture reliance: low / medium / high;
+- feedback richness: low / medium / high;
+- corner/surface softness;
+- content compression;
+- persistence/restoration strictness.
+
+Every fingerprint value must cite source claims or remain unknown. This is a retrieval aid, not a score or quality rating.
+
+## 11. Target implementation contract
+
+When the user wants to build a new app from the extracted grammar, produce an implementation contract that says:
+
+- which source patterns are adopted;
+- which are adapted;
+- which are rejected;
+- target-specific screen families;
+- target state graph;
+- component contracts;
+- target motion contracts;
+- target gesture contracts;
+- target haptic/audio contracts;
+- accessibility constraints;
+- required visual-regression checks;
+- required interactive acceptance checks.
+
+Do not emit source coordinates as target implementation instructions.
+
+For each target surface, include:
+
+```yaml
+surface: target.item-detail
+source_patterns:
+  - pattern.context-preserving-inspection
+must_preserve:
+  - parent context
+  - reversible dismissal
+  - visible continuity
+may_change:
+  - exact geometry
+  - brand palette
+  - domain content
+acceptance_tests:
+  - ...
+evidence_to_consult:
+  - claim...
+```
 
 ## Completion gate
 
