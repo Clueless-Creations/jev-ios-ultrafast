@@ -4,7 +4,7 @@ Fast, accessibility-native AI control for iOS Simulator.
 
 Give the runner a goal. Jev reads the app's accessibility tree, chooses an observed control, and a local Mac runner validates and executes the action. No screenshots in the model loop. One model request per decision.
 
-[Watch the demo](https://clueless-creations.github.io/jev-ios-ultrafast/media/comparison.html) · [Quick start](#quick-start) · [Run your app](#run-your-app) · [Add it to your coding agent](docs/agent-integration.md) · [Architecture](docs/architecture.md) · [MIT](LICENSE)
+[Agent skill](SKILL.md) · [Watch the demo](https://clueless-creations.github.io/jev-ios-ultrafast/media/comparison.html) · [Quick start](#quick-start) · [Run your app](#run-your-app) · [Add it to your coding agent](docs/agent-integration.md) · [Architecture](docs/architecture.md) · [MIT](LICENSE)
 
 ### Install
 
