@@ -1,44 +1,41 @@
-# Abstraction protocol
+# Product abstraction protocol
 
-A useful study has three layers:
+A useful dissection has three layers:
 
 1. evidence
-2. design rules
-3. target choices
+2. claims about the reference
+3. source-internal product rules and relationships
 
-Never backfill target choices as facts about the source.
+There is deliberately no target-product layer.
 
-## Pattern quality test
+## From screens to systems
 
-A transferable pattern should answer:
+Do not summarize a product as a list of screens. Ask what persistent entities and systems explain behavior across those screens.
 
-- What user problem does this solve?
-- In what situations should it apply?
-- When should it not apply?
-- What must remain invariant?
-- What can vary by brand/domain/platform?
+For each important event, ask:
+- what state changed?
+- which entities changed?
+- which persistent systems changed?
+- which other surfaces reflect the change?
+- what is restored on return?
+- what evidence supports each relationship?
+
+## Pattern quality
+
+A source-internal pattern should answer:
+- In what context does the reference use this behavior?
+- What invariant appears to hold?
+- What exceptions exist?
+- Which systems and states participate?
 - Which observations support it?
-- What would falsify the rule?
-- How should a builder test it?
+- What would falsify the inferred rule?
+
+Do not add advice about whether another product should copy or adapt it.
 
 ## Counterexamples matter
 
-If pushes are generally used for deep tasks but one deep task uses a sheet, record the exception and inspect why. Exceptions often reveal the real rule.
+If pushes are generally used for deep tasks but one deep task uses a sheet, preserve the exception and inspect why. Exceptions often reveal the real reference rule.
 
-## Example
+## Product-profile rule
 
-Source-specific observation:
-
-> An album preview opens in a draggable sheet and returns to the same list position.
-
-Transferable rule:
-
-> Secondary inspection should preserve discovery context when commitment is optional and reversible.
-
-Target expression might be:
-
-- recipe preview before adding to meal plan;
-- property preview before saving;
-- outfit preview before scheduling.
-
-The target should not inherit album controls, source colors, source copy, or source imagery.
+Prefer a smaller evidenced rule over a broad elegant theory. Unknown is a valid output.
