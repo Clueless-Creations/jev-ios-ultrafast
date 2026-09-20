@@ -161,6 +161,7 @@ class WorkerSpec:
     axe: str | None = None
     transport: str = "native"
     mobai_url: str | None = None
+    mobai_app: str | None = None
 
     def __post_init__(self):
         identifier(self.name)
@@ -175,6 +176,8 @@ class WorkerSpec:
             text(self.udid, "MobAI device ID", 300)
             if self.host or self.axe:
                 raise ValueError("MobAI workers use MobAI routing, not SSH/AXe fields")
+            if self.mobai_app is not None:
+                text(self.mobai_app, "MobAI cloud app reference", 1000)
             if self.mobai_url is not None:
                 text(self.mobai_url, "MobAI URL", 1000)
                 if not re.fullmatch(r"https?://[^\\s]+", self.mobai_url):
@@ -193,7 +196,7 @@ class WorkerSpec:
 
     def as_dict(self):
         return {"name":self.name,"udid":self.udid,"host":self.host,"python":self.python,
-                "axe":self.axe,"transport":self.transport,"mobai_url":self.mobai_url}
+                "axe":self.axe,"transport":self.transport,"mobai_url":self.mobai_url,"mobai_app":self.mobai_app}
 
 
 def validate_workers(workers):
@@ -211,7 +214,7 @@ def load_pool(path: Path):
         raise ValueError("Unsupported device pool")
     workers = []
     for item in data["devices"]:
-        fields(item, {"name","udid","host","python","axe","transport","mobai_url"}, {"name","udid"})
+        fields(item, {"name","udid","host","python","axe","transport","mobai_url","mobai_app"}, {"name","udid"})
         workers.append(WorkerSpec(**item))
     return validate_workers(workers)
 
