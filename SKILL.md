@@ -28,6 +28,48 @@ jev-ios inspect --udid "$SIMULATOR_UDID" --bundle-id <bundle-id> --launch
 
 Use the observation to create or refine `.jev-ios/smoke.json`.
 
+## Learn the app before mapping scenarios
+
+For an unfamiliar app, do not make the expensive coding agent manually inspect every screen. Use Jev as the fast semantic scout first.
+
+Boot a simulator and run:
+
+```sh
+jev-ios learn \
+  --udid "$SIMULATOR_UDID" \
+  --bundle-id <bundle-id> \
+  --output .jev-ios/app-map.json
+```
+
+Learning mode launches the app and lets Jev sample its visible navigation using the same observed-target and freshness guarantees as normal runs. It records discovered accessibility state and observed transitions into a compact app map. It intentionally does not type, scroll, purchase, submit, message, delete, or try to exhaustively crawl the product.
+
+Use `.jev-ios/app-map.json` as **orientation, not truth**. It is a bounded sample of reachable semantic UI from the launch state.
+
+### Agent workflow for an unfamiliar app
+
+1. Read existing product tests and app-level guidance so you know the intended product behavior.
+2. Run `jev-ios learn` to cheaply discover the app's visible semantic surface.
+3. Read the compact app map instead of carrying raw accessibility dumps into context.
+4. Identify the destination relevant to the requested change.
+5. Use `jev-ios inspect` on that area when exact current labels are needed.
+6. Translate the requested behavior into a focused scenario.
+7. Run the scenario after implementation.
+8. If the app map is stale because navigation changed materially, regenerate it deliberately.
+
+Do not turn learning mode into an autonomous crawler. Its purpose is to save the coding agent context and reasoning on routine app orientation.
+
+### What to extract from the map
+
+Look for:
+
+- stable destination labels;
+- likely navigation controls and the screens they revealed;
+- repeated/global controls that should not be mistaken for success evidence;
+- accessibility gaps that will make verification weak;
+- the shortest semantic path relevant to the requested feature.
+
+Prefer expected labels that distinguish the destination from every previously learned screen.
+
 ## Turn product intent into a scenario
 
 Do not translate an implementation plan directly into taps. Start from a user-observable contract.
@@ -146,7 +188,7 @@ When extending the tool rather than merely using it, route changes to the narrow
 | Jev provider transport/choice validation | `jev_ios/model.py` |
 | Adapter interfaces | `jev_ios/protocols.py` |
 | HTML run evidence | `jev_ios/report.py` |
-| First-run project scaffold | `jev_ios/onboarding.py` |
+| First-run project scaffold | `jev_ios/onboarding.py` |\n| Bounded semantic app learning | `jev_ios/learning.py` |
 
 Preserve these invariants:
 
