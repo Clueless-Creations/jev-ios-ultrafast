@@ -8,7 +8,7 @@ import subprocess
 import uuid
 
 from .fleet import booted_workers
-from .matrix import make_plan, run_matrix
+from .matrix import make_plan, reserve_budget, run_matrix
 from .matrix_report import load_manifest, summarize, write_json
 from .suite import (Case, Suite, WorkerSpec, bundle_identifier, changed_paths, digest, identifier,
                     load_pool, load_suite, scenario_from_data, select_cases, strings, text, validate_workers)
@@ -134,11 +134,18 @@ def handle(args, emit, catalog_loader, token_loader):
     output = args.output_dir or fresh_output()
     if output.exists() or output.is_symlink():
         raise ValueError("Output directory must be new")
+    if not selected:
+        raise ValueError("No scenarios selected; an empty run is not verification")
+    # Price the full plan before minting temporary credentials. run_matrix
+    # repeats this deterministic check using the same catalog snapshot before
+    # opening devices, so its direct Python entry point is protected too.
+    catalog = catalog_loader()
+    reserve_budget([case for case, _ in selected], workers, mode, catalog, args.budget_usd)
     # Credentials never enter suite files, remote worker messages or reports.
     key = token_loader(args.vercel_project) if args.vercel_project else (os.environ.get("AI_GATEWAY_API_KEY") or os.environ.get("VERCEL_OIDC_TOKEN"))
     if not isinstance(key, str) or not key or any(ord(c) < 33 or ord(c) > 126 for c in key):
         raise ValueError("Set AI_GATEWAY_API_KEY or VERCEL_OIDC_TOKEN, or use --vercel-project")
-    manifest = run_matrix(suite, selected, workers, output_dir=output, catalog=catalog_loader(),
+    manifest = run_matrix(suite, selected, workers, output_dir=output, catalog=catalog,
                           budget_usd=args.budget_usd, mode=mode, parallel=args.parallel,
                           api_concurrency=args.api_concurrency, requests_per_second=args.requests_per_second,
                           task_timeout=args.task_timeout, fail_fast=args.fail_fast, api_key=key,

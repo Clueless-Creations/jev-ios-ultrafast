@@ -254,20 +254,30 @@ def run_matrix(suite: Suite, selected, workers, *, output_dir: Path, catalog, bu
     def lane(worker):
         if gate.cancel.is_set():
             return
+        local = iter(cases)
+        def take_case():
+            return next(local) if mode == "matrix" else shard_queue.get_nowait()
+        # Claim work before acquiring a local lease or opening SSH. In shard
+        # mode an unused offline pool member must not invalidate completed work.
+        try:
+            case = take_case()
+        except (StopIteration, Empty):
+            return
+        if gate.cancel.is_set():
+            return
         try:
             with session_factory(worker, suite.bundle_id) as device:
-                local = iter(cases)
                 while not gate.cancel.is_set():
-                    try:
-                        case = next(local) if mode == "matrix" else shard_queue.get_nowait()
-                    except (StopIteration, Empty):
-                        break
                     row = run_case(device, worker, case)
                     publish(row)
                     if fail_fast and row["status"] != "verified":
                         gate.abort("fail_fast")
                     if row["status"] in ("uncertain", "cancelled") or row["reason"] in ("worker_error", "start_labels_missing", "fixture_lease_unavailable"):
                         # Preserve isolation after any unverified reset or uncertain input.
+                        break
+                    try:
+                        case = take_case()
+                    except (StopIteration, Empty):
                         break
         except Exception:
             with publication:
