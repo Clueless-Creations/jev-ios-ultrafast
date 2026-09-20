@@ -159,13 +159,26 @@ class WorkerSpec:
     host: str | None = None
     python: str = "python3"
     axe: str | None = None
+    transport: str = "native"
+    mobai_url: str | None = None
 
     def __post_init__(self):
         identifier(self.name)
-        try:
-            object.__setattr__(self, "udid", str(uuid.UUID(self.udid)))
-        except (ValueError, TypeError, AttributeError):
-            raise ValueError("A device requires a simulator UUID") from None
+        if self.transport not in ("native", "mobai"):
+            raise ValueError("Device transport must be native or mobai")
+        if self.transport == "native":
+            try:
+                object.__setattr__(self, "udid", str(uuid.UUID(self.udid)))
+            except (ValueError, TypeError, AttributeError):
+                raise ValueError("A native device requires a simulator UUID") from None
+        else:
+            text(self.udid, "MobAI device ID", 300)
+            if self.host or self.axe:
+                raise ValueError("MobAI workers use MobAI routing, not SSH/AXe fields")
+            if self.mobai_url is not None:
+                text(self.mobai_url, "MobAI URL", 1000)
+                if not re.fullmatch(r"https?://[^\\s]+", self.mobai_url):
+                    raise ValueError("MobAI URL must be an http(s) API base URL")
         if self.host is not None and (not isinstance(self.host, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._@-]{0,252}", self.host)):
             raise ValueError("Use a trusted SSH host alias or user@host, without options")
         text(self.python, "Python executable")
@@ -176,17 +189,18 @@ class WorkerSpec:
 
     @property
     def key(self):
-        return (self.host or "local", self.udid)
+        return (self.transport, self.mobai_url or self.host or "local", self.udid)
 
     def as_dict(self):
-        return {"name": self.name, "udid": self.udid, "host": self.host, "python": self.python, "axe": self.axe}
+        return {"name":self.name,"udid":self.udid,"host":self.host,"python":self.python,
+                "axe":self.axe,"transport":self.transport,"mobai_url":self.mobai_url}
 
 
 def validate_workers(workers):
     if not 1 <= len(workers) <= 32:
         raise ValueError("Select 1-32 devices")
     if len({w.name for w in workers}) != len(workers) or len({w.key for w in workers}) != len(workers):
-        raise ValueError("Device names and host/UUID pairs must be unique")
+        raise ValueError("Device names and transport/device pairs must be unique")
     return tuple(workers)
 
 
@@ -197,10 +211,9 @@ def load_pool(path: Path):
         raise ValueError("Unsupported device pool")
     workers = []
     for item in data["devices"]:
-        fields(item, {"name", "udid", "host", "python", "axe"}, {"name", "udid"})
+        fields(item, {"name","udid","host","python","axe","transport","mobai_url"}, {"name","udid"})
         workers.append(WorkerSpec(**item))
     return validate_workers(workers)
-
 
 def changed_paths(root: Path, ref: str):
     """Committed, staged, unstaged, untracked, deleted and both sides of renames."""
