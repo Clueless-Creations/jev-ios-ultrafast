@@ -1,38 +1,19 @@
-# Reference App Dissection
+# Product Dissection
 
-An agent skill for turning a reference mobile app into an evidence-backed design grammar that can guide a different product.
+A standalone agent capability for reconstructing an authorized consumer app as a durable, evidence-backed **Reference Product Profile**.
 
-## What it produces
+The profile captures the whole observable product system: product entities and relationships; information architecture; onboarding and returning-user flows; core loops; profiles/accounts/settings; progression/rewards; social; subscriptions/paywalls; notifications; every observed surface/state; components; navigation; motion; gestures; haptics/audio; accessibility; content behavior; technical observations; evidence; confidence; and unknowns.
 
-The skill captures and abstracts:
+## Boundary
 
-- screen/state graph
-- navigation philosophy
-- typography, spacing, surfaces, density, icon and imagery rules
-- component families and states
-- motion language
-- gesture grammar
-- haptics and audio behavior
-- accessibility behavior
-- content hierarchy and density
-- reusable design patterns with evidence and acceptance tests
-- optional target-product adaptation
+This skill ends at understanding the reference product.
 
-It is deliberately not "copy this app." The reference's brand, proprietary assets, copy, and business model stay separate from the transferable design rules.
+It does not know whether somebody later wants "Duolingo for cooking," "Strava for reading," or anything else. It does not recommend adopting, adapting, or rejecting mechanics for a target product.
+
+A downstream system such as Brigade can consume the Reference Product Profile and perform that translation independently.
 
 ## Relationship to Jev
 
-Jev can be used as a fast semantic scout for safe navigation and app mapping. It does not replace visual/motion/tactile analysis.
+Jev is optional instrumentation for fast bounded semantic scouting on supported iOS Simulator targets. It does not own the profile and its map does not establish visual, motion, gesture, tactile, audio, product-system, or exhaustive-coverage claims.
 
-The current Jev runtime in this repository is iOS-Simulator focused. Physical iPhone and Android capture can still be used by this skill through owner-assisted capture or another approved transport, but should not be described as native Jev capabilities until implemented.
-
-## Recommended workflow
-
-1. Establish authorization, device, version, scope, and target.
-2. Map states and transitions.
-3. Capture representative evidence.
-4. Measure foundations, components, motion, gestures, feedback, and content.
-5. Write evidence-backed claims.
-6. Extract cross-domain design patterns.
-7. Create target adaptation decisions.
-8. Hand the compact design grammar to the builder.
+Profiles are versioned by product, platform, and observed app version/build so they can be reused and refreshed instead of re-researching the reference for every downstream task.

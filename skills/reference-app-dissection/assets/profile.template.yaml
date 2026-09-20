@@ -1,0 +1,74 @@
+schema_version: reference-product-profile/v1
+
+product:
+  id: ""
+  name: ""
+  platform: ""
+  app_id: null
+  app_version: null
+  build: null
+
+capture:
+  captured_at: null
+  device_model: null
+  os_version: null
+  locale: null
+  appearance: null
+  text_size: null
+  reduce_motion: null
+  account_fixture: null
+  source_provenance: null
+  authorization: null
+
+entities: []
+systems: []
+states: []
+transitions: []
+journeys: []
+relationships: []
+
+foundations:
+  typography: []
+  spacing: []
+  color_roles: []
+  surfaces: []
+  shape: []
+  imagery: []
+  icons: []
+  density: []
+  responsive_rules: []
+
+components: []
+navigation_patterns: []
+motion_families: []
+gesture_families: []
+feedback_families: []
+content_patterns: []
+technical_observations: []
+patterns: []
+claims: []
+
+coverage:
+  acquisition_entry: unknown
+  onboarding: unknown
+  authentication: unknown
+  core_loop: unknown
+  completion_failure: unknown
+  profile: unknown
+  account: unknown
+  settings: unknown
+  privacy_security: unknown
+  search_discovery: unknown
+  history_saved: unknown
+  progression_rewards: unknown
+  social: unknown
+  notifications: unknown
+  monetization: unknown
+  accessibility: unknown
+  motion: unknown
+  gestures: unknown
+  haptics_audio: unknown
+  offline_errors: unknown
+  destructive_flows: unknown
+
+unknowns: []
