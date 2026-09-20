@@ -4,7 +4,7 @@ Give your coding agent a simulator verification tool, not another coding agent t
 
 Jev chooses the next action from an app's accessibility tree. A Python runner checks the choice, performs the action, and verifies the result from a fresh observation. Run one scenario, share a suite across multiple simulators, or run the same suite on every device in a pool.
 
-[Agent skill](SKILL.md) · [Quick start](#quick-start) · [Parallel testing](docs/parallel-testing.md) · [Watch the demo](https://clueless-creations.github.io/jev-ios-ultrafast/media/comparison.html) · [Architecture](docs/architecture.md) · [MIT](LICENSE)
+[Agent skill](SKILL.md) · [Reference app dissection](skills/reference-app-dissection/SKILL.md) · [Quick start](#quick-start) · [Parallel testing](docs/parallel-testing.md) · [Watch the demo](https://clueless-creations.github.io/jev-ios-ultrafast/media/comparison.html) · [Architecture](docs/architecture.md) · [MIT](LICENSE)
 
 <a href="https://clueless-creations.github.io/jev-ios-ultrafast/media/comparison.html"><img src="docs/media/comparison-preview.gif" alt="Recorded Jev and baseline simulator runs, with synchronized replay controls" width="100%" /></a>
 
@@ -152,6 +152,12 @@ Native Simulator execution, local and SSH device pools, sharding, device matrice
 MobAI remains a proposed adapter, not an available runtime switch. Vendor device-farm provisioning, physical iOS devices, Android, automatic scenario generation, and cross-device decision caching are not implemented. [Device adapters](docs/device-adapters.md) documents the boundary.
 
 The single-run commands still support optional screenshots, recordings, and HTML reports. AXe typing accepts caller-supplied printable US ASCII in empty, non-secure fields. Matrix reports currently contain semantic traces, not video capture.
+
+## Reference-led design research
+
+Use [`skills/reference-app-dissection/SKILL.md`](skills/reference-app-dissection/SKILL.md) when the job is to study another app's complete design language rather than merely verify a user flow. The skill treats screens, navigation, motion, gestures, haptics, audio, accessibility, content density, and component behavior as evidence-backed design grammar. Jev may scout safe semantic navigation, but the resulting design specification is separate from Jev's runtime maps and exact-label verification.
+
+The handoff is meant for a different product: extract reusable interaction rules and acceptance tests while leaving source branding, proprietary assets, copy, and business-model assumptions behind.
 
 ## Benchmarks and development
 
