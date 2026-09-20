@@ -67,7 +67,7 @@ The runner observes only the controls exposed by the app, gives Jev their target
 
 ### Requirements
 
-- macOS
+- Apple Silicon Mac (the bundled Daybreak fixture currently targets arm64)
 - Xcode with an iOS Simulator runtime
 - Python 3.11+
 - AXe
@@ -90,6 +90,8 @@ Find a simulator and build the included fixture:
 ```sh
 jev-ios devices
 export SIMULATOR_UDID="<your simulator UUID>"
+xcrun simctl boot "$SIMULATOR_UDID" 2>/dev/null || true
+open -a Simulator
 
 ./scripts/build-demo.sh
 xcrun simctl install "$SIMULATOR_UDID" runs/JevDemo.app
@@ -142,7 +144,7 @@ jev-ios run \
 
 Repeat `--expect-label` for multiple required labels and `--allow-label` to constrain available taps. Scrolling requires `--allow-scroll`.
 
-Typing values can be supplied explicitly with `--text KEY=VALUE`. The model selects the key and the runner supplies its value to a verified empty field.
+Typing values can be supplied explicitly with `--text KEY=VALUE`. The model selects the key and the runner supplies its value to a verified empty field. The current AXe typing adapter accepts printable US ASCII and intentionally excludes secure or already-populated fields.
 
 ## Use it in an agent loop
 
