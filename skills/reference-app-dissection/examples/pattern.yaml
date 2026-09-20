@@ -1,0 +1,27 @@
+id: pattern.context-preserving-inspection
+name: Context-preserving inspection
+intent: Let the user inspect secondary detail without losing their place in the parent context.
+when_to_use:
+  - Inspection is reversible and usually short.
+  - The parent collection remains important context.
+when_not_to_use:
+  - The task becomes a long multi-step workflow.
+  - The detail destination should be independently navigable.
+invariants:
+  - Parent scroll/selection state is preserved.
+  - Dismissal is obvious and reversible.
+  - Interactive dismissal tracks visible state continuously when supported.
+allowed_variations:
+  - Sheet, overlay, or adaptive presentation chosen for platform and task.
+  - Brand, imagery, geometry, and exact motion values.
+source_claim_refs:
+  - claim.example-context-restoration
+confidence: medium
+applicability_limits:
+  - Not enough evidence to generalize to deep-link entry.
+target_examples:
+  - Inspect a recipe before adding it to a weekly plan.
+  - Inspect a hotel before saving it to a shortlist.
+acceptance_tests:
+  - Open from a scrolled collection, dismiss, and verify restoration.
+  - Cancel a partial dismissal and verify no state loss.
