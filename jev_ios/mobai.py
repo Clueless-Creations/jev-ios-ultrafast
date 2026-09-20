@@ -56,12 +56,12 @@ def _parse_tree(tree):
         value=(_CONTENT.search(tail).group(1) if _CONTENT.search(tail) else "")
         lower=tail.lower()
         enabled=not any(x in lower for x in ("disabled","enabled=false"))
-        secure=any(x in lower for x in ("secure","password"))
+        secure=any(x in (kind+" "+label+" "+(aid or "")+" "+tail).lower() for x in ("secure","password","passcode","credential"))
         if secure:
-            value="[redacted]"
+            label="[redacted]"; value="[redacted]"; aid=None
         base=(kind.lower(),label,aid or "")
         occurrence=seen.get(base,0); seen[base]=occurrence+1
-        predicate={"accessibility_id":aid} if aid else {"type":kind.lower(),"text":label,"index":occurrence}
+        predicate=({"accessibility_id":aid,"index":occurrence} if aid else {"type":kind.lower(),"text":label,"index":occurrence})
         target=hashlib.sha256(json.dumps([base,occurrence],sort_keys=True).encode()).hexdigest()[:12]
         elements.append({"id":target,"kind":kind.lower(),"label":label,"value":value,
                          "enabled":enabled,"secure":secure,"predicate":predicate})
@@ -86,9 +86,24 @@ class MobAIClient:
         if lease:
             headers["X-Lease-Token"]=lease
         req=urllib.request.Request(self.base+path,data=data,headers=headers,method=method)
+        deadline=time.monotonic()+self.timeout
         try:
             with urllib.request.urlopen(req,timeout=self.timeout) as resp:
-                raw=resp.read(8_000_001)
+                chunks=[]; total=0
+                while True:
+                    remaining=deadline-time.monotonic()
+                    if remaining <= 0:
+                        raise TimeoutError()
+                    try:
+                        if getattr(resp, "fp", None) and getattr(resp.fp, "raw", None) and getattr(resp.fp.raw, "_sock", None):
+                            resp.fp.raw._sock.settimeout(min(remaining, 1.0))
+                    except (AttributeError, OSError):
+                        pass
+                    chunk=resp.read(min(65536,8_000_001-total))
+                    if not chunk: break
+                    chunks.append(chunk); total+=len(chunk)
+                    if total>8_000_000: break
+                raw=b"".join(chunks)
         except urllib.error.HTTPError as exc:
             code=exc.code
             raise MobAIError(f"MobAI HTTP {code}") from None
