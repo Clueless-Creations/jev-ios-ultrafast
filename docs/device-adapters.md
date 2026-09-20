@@ -38,7 +38,7 @@ A pool can mix transports:
   "devices": [
     {"name":"native-fast","udid":"00000000-0000-0000-0000-000000000000"},
     {"name":"mobai-local","transport":"mobai","udid":"<mobai-device-id>"},
-    {"name":"mobai-farm","transport":"mobai","udid":"<cloud-device-id>","mobai_url":"https://your-mobai-host/api/v1"}
+    {"name":"mobai-farm","transport":"mobai","udid":"<cloud-device-id>","mobai_url":"https://your-mobai-host/api/v1","mobai_app":"<provider-app-ref>"}
   ]
 }
 ```
