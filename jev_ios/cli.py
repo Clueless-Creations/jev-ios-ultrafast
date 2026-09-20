@@ -107,6 +107,9 @@ def parser():
     learn.add_argument("--max-steps", type=int, choices=range(1, 21), default=12)
     learn.add_argument("--output", type=Path, default=Path(".jev-ios/app-map.json"))
     learn.add_argument("--vercel-project")
+    learn.add_argument("--allow-label", action="append", default=[], help="Explicitly approved navigation label; otherwise observe only")
+    learn.add_argument("--min-probability", type=float, default=0.55)
+    learn.add_argument("--budget-usd", type=float, default=0.1)
     report = sub.add_parser("report", help="Create a portable report from an existing trace")
     report.add_argument("--trace", required=True, type=Path)
     report.add_argument("--output", required=True, type=Path)
@@ -154,6 +157,8 @@ def parser():
             q.add_argument("--screenshot", type=Path)
             q.add_argument("--report", type=Path, help="Write a self-contained HTML result report")
             q.add_argument("--record-video", type=Path, help="Capture original-rate simulator video to a new .mp4")
+    from .parallel_cli import register
+    register(sub)
     return p
 
 
@@ -184,9 +189,13 @@ def main(argv=None):
     import signal
     import threading
     import time
-    from .report import write_report
-    from .recording import VideoRecorder
+    from contextlib import ExitStack
+    from .lease import device_lease
     args = parser().parse_args(argv)
+    resources = ExitStack()
+    if args.command in ("run", "report"):
+        from .report import write_report
+        from .recording import VideoRecorder
     handle, recorder = None, None
     previous_term = None
     if threading.current_thread() is threading.main_thread():
@@ -203,6 +212,9 @@ def main(argv=None):
             handle.flush()
         print(line, flush=True)
     try:
+        if args.command in ("plan", "matrix", "verify", "reproduce"):
+            from .parallel_cli import handle as handle_parallel
+            return handle_parallel(args, emit, model_catalog, temporary_vercel_token)
         if args.command == "comparison-report":
             from .comparison_report import write_comparison_report
             if args.manifest.stat().st_size > 16_000_000:
@@ -226,6 +238,7 @@ def main(argv=None):
                 raise ValueError(f"Conservative comparison budget ${bound:.6f} exceeds --budget-usd")
             emit({"type": "budget", "reserved_usd": round(bound, 6), "attempts": args.pairs * 2, "pricing": pricing})
             key = temporary_vercel_token(args.vercel_project) if args.vercel_project else None
+            resources.enter_context(device_lease(args.udid))
             manifest = run_comparison(scenario=scenario, udid=args.udid, bundle_id=args.bundle_id,
                 output_dir=args.output_dir, api_key=key, pricing=pricing, baseline_model=args.baseline_model,
                 baseline_max_output_tokens=args.baseline_max_output_tokens,
@@ -244,17 +257,35 @@ def main(argv=None):
             return 0
         if args.command == "learn":
             from .learning import learn_app
-            key = temporary_vercel_token(args.vercel_project) if args.vercel_project else None
+            from .suite import text, strings
+            text(args.goal, "learning goal", 4000)
+            strings(args.allow_label, "approved navigation labels")
+            if not math.isfinite(args.min_probability) or not 0 <= args.min_probability <= 1:
+                raise ValueError("Learning confidence must be finite and in [0,1]")
+            if args.output.exists() or args.output.is_symlink():
+                raise ValueError("Learning output must be new")
+            # Reserve output before inference or device actions, with private permissions.
+            args.output.parent.mkdir(parents=True, exist_ok=True)
+            handle = args.output.open("x", encoding="utf-8")
+            os.chmod(args.output, 0o600)
+            map_handle, handle = handle, None
+            resources.callback(map_handle.close)
+            bound = pricing_bound(args.max_steps, 0, args.budget_usd) if args.allow_label else None
+            if bound:
+                emit({"type": "budget", **bound})
+            key = temporary_vercel_token(args.vercel_project) if args.vercel_project and args.allow_label else None
+            resources.enter_context(device_lease(args.udid))
             device = AxeDevice(args.udid, args.bundle_id)
             device.launch()
             with JevModel(ModelOptions(max_calls=args.max_steps), api_key=key) as model:
-                learned = learn_app(device, model, goal=args.goal, max_steps=args.max_steps, emit=emit)
-            args.output.parent.mkdir(parents=True, exist_ok=True)
-            if args.output.exists():
-                raise ValueError("Learning output already exists; choose a new path or remove the old map")
-            args.output.write_text(json.dumps(learned, indent=2, ensure_ascii=False) + "\n")
-            emit({"type": "artifact", "app_map": str(args.output)})
-            return 0
+                learned = learn_app(device, model, goal=args.goal, max_steps=args.max_steps,
+                                    allow_labels=args.allow_label, min_probability=args.min_probability, emit=emit)
+            learned["bundle_id"] = args.bundle_id
+            learned["udid"] = args.udid
+            map_handle.write(json.dumps(learned, indent=2, ensure_ascii=False) + "\n")
+            map_handle.flush()
+            emit({"type": "artifact", "app_map": str(args.output), "status": learned["status"]})
+            return 0 if learned["status"] == "sampled" else 2
         if args.command == "init":
             from .onboarding import init_project
             created = init_project(Path.cwd(), bundle_id=args.bundle_id, name=args.name, force=args.force)
@@ -286,6 +317,7 @@ def main(argv=None):
                 raise ValueError("Artifact paths must be distinct and must not already exist")
             if args.record_video and args.record_video.suffix.lower() != ".mp4":
                 raise ValueError("--record-video requires a .mp4 path")
+        resources.enter_context(device_lease(args.udid))
         device = AxeDevice(args.udid, args.bundle_id, axe_path=args.axe)
         if args.launch:
             device.launch()
@@ -335,5 +367,6 @@ def main(argv=None):
                 emit({"type": "error", "error": "Recording finalization failed"})
         if handle:
             handle.close()
+        resources.close()
         if previous_term is not None:
             signal.signal(signal.SIGTERM, previous_term)

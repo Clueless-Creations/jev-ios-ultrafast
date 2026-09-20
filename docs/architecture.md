@@ -61,6 +61,22 @@ The Python interfaces live in `jev_ios/protocols.py`. The validated scenario loa
 
 A new device adapter must preserve target identity and freshness semantics. A new model adapter must return only offered operations, targets, and text keys, with finite probabilities or an explicit `confidence_kind: "not_reported"` and null probability. Missing confidence cannot pass a positive confidence threshold. Keep the runner's deterministic checks even when a provider promises structured output. The current Node wrapper integrates at the host layer; native Brigade provider registration remains separate work.
 
+## Parallel host and device sessions
+
+The suite scheduler is a host-layer extension around the existing runner, not a new scenario language or a second agent. `suite.py` validates case metadata and pools; `parallel_cli.py` exposes plan/matrix/verify/reproduce; `matrix.py` schedules one exclusive lane per device and preserves the original runner's independent checks.
+
+`shard` consumes a shared case queue; `matrix` schedules the explicit case/device product. All model clients stay on the coordinator behind one request-rate/concurrency gate. Whole-plan pricing admission occurs before sessions open. Every attempted case uses a fresh bounded model client and records its frozen scenario and independent evidence.
+
+`NativeSession` owns a cross-process device lease and explicit app relaunch. `RemoteSession` carries device-only RPC over authenticated SSH to the same native session on a Mac. Remote workers do not receive gateway keys or execute model-generated shell commands. A broken or uncertain lane is not reused. Leases are released only after bounded in-flight commands settle.
+
+Fixture state is separate from process state. The shared-fixture default serializes cases; per-device parallelism requires explicitly independent fixture data. Coordinator resource locks are not a distributed backend lock service. Keep other automation and manual interaction away from test devices while a lane owns them.
+
+Plans record selection reasons and source/build provenance. Unknown source changes select the full suite. Missing, skipped, or interrupted cells cannot become passing evidence. A final report groups failure symptoms without asserting root causes. Reproduction is an explicitly authorized new scenario run, not recorded action replay.
+
+Semantic learning now requires a caller-approved navigation allow-list. Without it, learning observes only. App-map v2 semantic IDs support orientation across sampled screens but are never reusable runtime target IDs. Neither map generation nor source-path selection changes the product's acceptance criteria. Cross-device decision caching, vendor provisioning and MobAI execution are not implemented.
+
+See [parallel testing](parallel-testing.md) for the executable schemas, result contracts, operational limits, and qualification steps.
+
 ## Design provenance
 
 Daybreak is a UIKit fixture. Its design work applies [Appllama's app-design skill at the pinned revision](https://github.com/Appllama/appllama-skills/blob/dd5caaec3d5d50ad7fc0324da238119c6b7c3707/skills/appllama-app-design-skill/SKILL.md), including native controls, platform typography, a consistent accent, navigation semantics, and simulator review. The skill allows its default Expo stack to be overridden when the project already uses another stack.

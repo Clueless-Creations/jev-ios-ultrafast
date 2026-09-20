@@ -1,0 +1,11 @@
+{
+  "schema": "jev-ios/scenario/v1",
+  "name": "Daybreak home",
+  "goal": "Verify the Daybreak home screen exposes Lisbon and Kyoto.",
+  "expect_labels": [
+    "Daybreak",
+    "Lisbon",
+    "Kyoto"
+  ],
+  "max_steps": 2
+}

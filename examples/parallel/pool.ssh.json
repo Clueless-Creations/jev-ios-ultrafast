@@ -1,0 +1,12 @@
+{
+  "schema": "jev-ios/pool/v1",
+  "devices": [
+    {
+      "name": "cloud-mac-phone",
+      "udid": "11111111-1111-1111-1111-111111111111",
+      "host": "jev-mac",
+      "python": "/Users/runner/jev/.venv/bin/python",
+      "axe": "/opt/homebrew/bin/axe"
+    }
+  ]
+}

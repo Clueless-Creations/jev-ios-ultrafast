@@ -1,0 +1,38 @@
+{
+  "schema": "jev-ios/suite/v1",
+  "name": "Daybreak smoke",
+  "bundle_id": "org.example.jevsimdemo",
+  "fixture_isolation": "per_device",
+  "start_labels": [
+    "Daybreak",
+    "Lisbon",
+    "Kyoto"
+  ],
+  "launch_args": [],
+  "cases": [
+    {
+      "id": "home",
+      "scenario": "cases/home.json",
+      "critical": true,
+      "paths": [
+        "demo/*",
+        "scripts/build-demo.sh"
+      ],
+      "tags": [
+        "smoke"
+      ]
+    },
+    {
+      "id": "lisbon",
+      "scenario": "cases/lisbon.json",
+      "critical": false,
+      "paths": [
+        "demo/*"
+      ],
+      "tags": [
+        "smoke",
+        "journey"
+      ]
+    }
+  ]
+}

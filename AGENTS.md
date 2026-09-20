@@ -2,11 +2,17 @@
 
 This repository contains a local iOS Simulator runner and the Daybreak fixture app. Read `README.md` and `docs/architecture.md` before extending the runtime. Code and validated scenario schemas define behavior; documentation describes them.
 
+For app usage and scenario authoring, read `SKILL.md`. For parallel work, also read `docs/parallel-testing.md`. Runtime target IDs are never cross-device selectors.
+
 ## Code map
 
 | Path | Responsibility |
 | --- | --- |
 | `jev_ios/cli.py` | CLI options, credentials, pricing admission, run artifacts |
+| `jev_ios/parallel_cli.py`, `jev_ios/suite.py` | Suite/pool validation, impact selection, and parallel commands |
+| `jev_ios/matrix.py`, `jev_ios/matrix_report.py` | Device lanes, shared API gates, frozen evidence, and aggregation |
+| `jev_ios/lease.py`, `jev_ios/fleet.py`, `jev_ios/remote.py` | Local/SSH device ownership and bounded device-only transport |
+| `jev_ios/onboarding.py`, `jev_ios/learning.py` | Non-destructive setup and allow-listed semantic discovery |
 | `jev_ios/runner.py` | Bounded decisions, execution, final label verification |
 | `jev_ios/model.py` | Vercel evaluation transport and strict choice validation |
 | `jev_ios/baseline.py` | Standard model transport and strict JSON action validation |
