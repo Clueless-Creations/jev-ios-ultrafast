@@ -19,7 +19,7 @@ Then, from your iOS app repository:
 jev-ios init --bundle-id com.yourcompany.yourapp
 ```
 
-That creates `.jev-ios/smoke.json`, a runnable smoke-test script, and a short instruction file for coding agents. Inspect your app once, replace the placeholder goal and success label, and your agent has a repeatable simulator verification loop.
+That creates `.jev-ios/smoke.json`, a runnable smoke-test script, and agent guidance. For an unfamiliar app, run `jev-ios learn` first: Jev cheaply samples the accessibility-native navigation surface into `.jev-ios/app-map.json`, giving the coding agent a compact map before it spends its own context exploring the UI. Then define focused verification scenarios from that map and exact `inspect` observations.
 
 <a href="https://clueless-creations.github.io/jev-ios-ultrafast/media/comparison.html"><img src="docs/media/comparison-preview.gif" alt="Jev controlling an iOS Simulator at normal speed" width="100%" /></a>
 
