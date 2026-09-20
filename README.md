@@ -4,7 +4,7 @@ Fast, accessibility-native AI control for iOS Simulator.
 
 Give the runner a goal. Jev reads the app's accessibility tree, chooses an observed control, and a local Mac runner validates and executes the action. No screenshots in the model loop. One model request per decision.
 
-[Watch the demo](https://clueless-creations.github.io/jev-ios-ultrafast/media/comparison.html) · [Quick start](#quick-start) · [Run your app](#run-your-app) · [Add it to your coding agent](docs/agent-integration.md) · [Architecture](docs/architecture.md) · [MIT](LICENSE)
+[Agent skill](SKILL.md) · [Watch the demo](https://clueless-creations.github.io/jev-ios-ultrafast/media/comparison.html) · [Quick start](#quick-start) · [Run your app](#run-your-app) · [Add it to your coding agent](docs/agent-integration.md) · [Architecture](docs/architecture.md) · [MIT](LICENSE)
 
 ### Install
 
@@ -13,7 +13,13 @@ curl -fsSL https://raw.githubusercontent.com/Clueless-Creations/jev-ios-ultrafas
 jev-ios doctor
 ```
 
-Then point it at an iOS Simulator and give it a goal.
+Then, from your iOS app repository:
+
+```sh
+jev-ios init --bundle-id com.yourcompany.yourapp
+```
+
+That creates `.jev-ios/smoke.json`, a runnable smoke-test script, and agent guidance. For an unfamiliar app, run `jev-ios learn` first: Jev cheaply samples the accessibility-native navigation surface into `.jev-ios/app-map.json`, giving the coding agent a compact map before it spends its own context exploring the UI. Then define focused verification scenarios from that map and exact `inspect` observations.
 
 <a href="https://clueless-creations.github.io/jev-ios-ultrafast/media/comparison.html"><img src="docs/media/comparison-preview.gif" alt="Jev controlling an iOS Simulator at normal speed" width="100%" /></a>
 
@@ -51,7 +57,7 @@ That makes it useful for agent-driven development, UI smoke tests, release valid
 - **Pluggable boundaries.** Model, device, and runner contracts are separated so the system can be embedded in larger agent workflows.
 - **A real iOS fixture.** Daybreak is included so the complete loop can be run immediately.
 
-The current device adapter uses [AXe](https://github.com/cameroncooke/AXe). Jev is provided by [TypeSafe](https://docs.typesafe.ai/introduction) through Vercel AI Gateway.
+Jev is provided by [TypeSafe](https://docs.typesafe.ai/introduction) through Vercel AI Gateway. Device control is adapter-based. The built-in local path talks directly to Apple's iOS Simulator through `xcrun simctl` plus AXe. XcodeBuildMCP is not required. If its bundled AXe binary happens to be installed, Jev can discover it as a convenience, but it is not part of the architecture.
 
 ## Example
 
@@ -72,7 +78,7 @@ The runner observes only the controls exposed by the app, gives Jev their target
 - Python 3.11+
 - AXe
 
-An AXe binary bundled with XcodeBuildMCP is detected automatically. Set `JEV_IOS_AXE` to select another installation.
+Install AXe as a standalone executable and set `JEV_IOS_AXE` when it is not on PATH. An AXe binary bundled by another local tool can also be discovered, but no MCP server is required for the native simulator path.
 
 ### Install
 
@@ -253,3 +259,12 @@ See [NOTICE.md](NOTICE.md) for source and design provenance.
 ## License
 
 [MIT](LICENSE)
+
+
+## Agent and device integrations
+
+The default path is deliberately boring: a coding agent calls the `jev-ios` CLI, and Jev controls a local iOS Simulator through Apple simulator tooling plus the device adapter. That works from terminal-based agents such as Codex and Claude Code without requiring XcodeBuildMCP.
+
+For teams already using [MobAI](https://mobai.run/), keep MobAI as an optional device transport rather than a required dependency. As of September 2026, MobAI supports local iOS simulators, real iOS/Android devices, MCP/HTTP workflows, Codex and Claude Code, and reusable mobile flows. Jev's scenario/decision layer and MobAI's device surface are complementary: Jev can remain the fast semantic decision engine while an adapter translates observed MobAI UI state and Jev decisions to MobAI's execution interface.
+
+See [device adapters](docs/device-adapters.md) for the intended boundary.
