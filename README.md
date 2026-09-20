@@ -1,43 +1,80 @@
 # Jev iOS Ultrafast
 
-Give an iOS Simulator a goal. Jev picks a control from its accessibility tree, and a local Mac runner checks and executes the choice. One model request per decision, with no screenshots in the model loop.
+Fast, accessibility-native AI control for iOS Simulator.
 
-[Watch the comparison](https://clueless-creations.github.io/jev-ios-ultrafast/media/comparison.html) · [Try it](#try-it-on-your-mac) · [Use your app](#run-another-app) · [Call from Brigade](#extend-or-call-from-brigade) · [MIT license](LICENSE)
+Give the runner a goal. Jev reads the app's accessibility tree, chooses an observed control, and a local Mac runner validates and executes the action. No screenshots in the model loop. One model request per decision.
 
-<a href="https://clueless-creations.github.io/jev-ios-ultrafast/media/comparison.html"><img src="docs/media/comparison-preview.gif" alt="Jev and GPT-5.4 Nano planning the same Lisbon trip in an iOS Simulator at normal speed" width="100%" /></a>
+[Watch the demo](https://clueless-creations.github.io/jev-ios-ultrafast/media/comparison.html) · [Quick start](#quick-start) · [Run your app](#run-your-app) · [Add it to your coding agent](docs/agent-integration.md) · [Architecture](docs/architecture.md) · [MIT](LICENSE)
 
-Jev on the left and GPT-5.4 Nano on the right, playing at 1×. The two recordings start at the same point in each run; the attempts ran sequentially on one simulator. [Open the replay](https://clueless-creations.github.io/jev-ios-ultrafast/media/comparison.html) to choose any pair, scrub both recordings, and inspect the results. A [still preview](docs/media/comparison-poster.png) is also available.
+### Install
 
-## Compare Jev and GPT-5.4 Nano
+```sh
+curl -fsSL https://raw.githubusercontent.com/Clueless-Creations/jev-ios-ultrafast/main/scripts/install.sh | sh
+jev-ios doctor
+```
+
+Then point it at an iOS Simulator and give it a goal.
+
+<a href="https://clueless-creations.github.io/jev-ios-ultrafast/media/comparison.html"><img src="docs/media/comparison-preview.gif" alt="Jev controlling an iOS Simulator at normal speed" width="100%" /></a>
+
+## Why this exists
+
+AI coding agents can write an iOS feature quickly. Closing the loop on the running app is slower.
+
+Jev iOS Ultrafast gives agents a small, deterministic interface for interacting with an iOS Simulator:
+
+```text
+goal
+  ↓
+accessibility tree
+  ↓
+Jev chooses a target
+  ↓
+local validation
+  ↓
+tap / type / scroll
+  ↓
+fresh accessibility state
+  ↓
+verify
+```
+
+That makes it useful for agent-driven development, UI smoke tests, release validation, and fast feedback loops where screenshot-heavy computer-use agents are unnecessary.
+
+## What you get
+
+- **Accessibility-first control.** The model reasons over compact semantic state instead of screenshots.
+- **Fast decisions.** Jev is designed for small structured decisions inside tight loops.
+- **Local execution.** Coordinates, freshness checks, input, and verification stay on the Mac.
+- **Portable scenarios.** Goals, expected labels, allowed controls, and limits live in JSON.
+- **Run artifacts.** Recordings, traces, timings, receipts, screenshots, and HTML reports are generated locally.
+- **Pluggable boundaries.** Model, device, and runner contracts are separated so the system can be embedded in larger agent workflows.
+- **A real iOS fixture.** Daybreak is included so the complete loop can be run immediately.
+
+The current device adapter uses [AXe](https://github.com/cameroncooke/AXe). Jev is provided by [TypeSafe](https://docs.typesafe.ai/introduction) through Vercel AI Gateway.
+
+## Example
+
+The included Daybreak scenario asks the agent to configure and save a Lisbon itinerary:
 
 > Plan a slow Saturday in Lisbon. Choose Design & coffee, walk, start at 10:00, and save the itinerary.
 
-Both engines get the same accessibility state, offered controls, and goal. Both use the same executor and must pass the same local label checks. The runner resets Daybreak before each attempt and alternates which engine goes first.
+The runner observes only the controls exposed by the app, gives Jev their target IDs, validates the selected target against a fresh observation, performs the action, and verifies the final state from accessibility labels.
 
-| Recorded September 19, 2026 | Jev | GPT-5.4 Nano |
-| --- | ---: | ---: |
-| Task time in the sole pair where both passed | 14.65 s | 25.64 s |
-| Actions in that pair | 7 | 7 |
-| Verified attempts across all six pairs | 5 / 6 | 2 / 6 |
-| Median response time, usable responses only | 242 ms | 922 ms |
+[Open the synchronized replay](https://clueless-creations.github.io/jev-ios-ultrafast/media/comparison.html) · [Inspect the decision loop](jev_ios/runner.py)
 
-The baseline took 1.75× as long in that one pair. Four baseline attempts hit HTTP 429; one Jev attempt ended in a connection failure or timeout. Those failures limit what this small test says about speed and reliability. All 12 attempts remain in the report, including failures.
+## Quick start
 
-[All results and measurement limits](docs/comparison.md#recorded-results--september-19-2026) · [Machine-readable results](docs/media/comparison.json) · [Single-run replay with decisions](https://clueless-creations.github.io/jev-ios-ultrafast/media/showcase.html)
+### Requirements
 
-Astra Standard and Fast request profiles are implemented. Both returned HTTP 403 during access checks; the tested Gateway account needs paid credits. No Astra iOS benchmark has run. See the [Astra setup and access results](docs/astra-comparison.md).
+- Apple Silicon Mac (the bundled Daybreak fixture currently targets arm64)
+- Xcode with an iOS Simulator runtime
+- Python 3.11+
+- AXe
 
-## What you can run
+An AXe binary bundled with XcodeBuildMCP is detected automatically. Set `JEV_IOS_AXE` to select another installation.
 
-This repo includes the Python CLI, the native Daybreak fixture, portable JSON scenarios, and a Node wrapper for calling the runner from Brigade. It uses [TypeSafe's Jev](https://docs.typesafe.ai/introduction) through Vercel AI Gateway and [AXe](https://github.com/cameroncooke/AXe) for simulator input. The Python package has no runtime dependencies and needs no web deployment.
-
-The model chooses among observed target IDs. The runner resolves coordinates locally, checks the screen again before input, and verifies the expected labels afterward. Recordings, per-call timings, and execution receipts go into a local HTML report. [Read the loop](jev_ios/runner.py) or the [architecture](docs/architecture.md).
-
-## Try it on your Mac
-
-You need macOS, Xcode with an iOS Simulator runtime, Python 3.11+, and an installed AXe binary. An AXe binary bundled with XcodeBuildMCP is detected automatically; set `JEV_IOS_AXE` to select another installation. The bundled app's build script targets Apple Silicon.
-
-Clone the repo and install the CLI:
+### Install
 
 ```sh
 git clone https://github.com/Clueless-Creations/jev-ios-ultrafast.git
@@ -48,13 +85,22 @@ python -m pip install -e .
 jev-ios doctor
 ```
 
-Use `jev-ios devices` to find a simulator, then set `SIMULATOR_UDID` to its UUID. Open that device in Simulator (Device Hub in newer Xcode) to watch the run. Boot the device if needed, then build and launch Daybreak:
+Find a simulator and build the included fixture:
 
 ```sh
+jev-ios devices
+export SIMULATOR_UDID="<your simulator UUID>"
+xcrun simctl boot "$SIMULATOR_UDID" 2>/dev/null || true
+open -a Simulator
+
 ./scripts/build-demo.sh
 xcrun simctl install "$SIMULATOR_UDID" runs/JevDemo.app
 xcrun simctl launch --terminate-running-process "$SIMULATOR_UDID" org.example.jevsimdemo
+```
 
+Run it:
+
+```sh
 jev-ios run \
   --scenario scenarios/showcase.json \
   --udid "$SIMULATOR_UDID" \
@@ -66,73 +112,115 @@ jev-ios run \
   --report runs/daybreak.html
 ```
 
-Daybreak contains local fixture data. The final labels identify both the saved trip and the selected preferences.
+Open `runs/daybreak.html` for the recording, decisions, timings, execution receipts, and final verification.
 
-Open `runs/daybreak.html` to review the run and its recording. The trace records observations, choices, model timings, execution receipts, and the final label check. Artifact paths are used once; choose new filenames for the next run. Restart Daybreak with the launch command above to return to its home screen.
+Authentication also accepts `AI_GATEWAY_API_KEY` or `VERCEL_OIDC_TOKEN`. With either set, omit `--vercel-project`. Tokens stay in memory.
 
-Authentication accepts `AI_GATEWAY_API_KEY` or `VERCEL_OIDC_TOKEN` in the process environment. With either set, omit `--vercel-project`. That option instead obtains a temporary development token through an existing Vercel CLI login and project. Tokens stay in memory. See [Vercel's authentication docs](https://vercel.com/docs/ai-gateway/authentication-and-byok/oidc).
+## Run your app
 
-Before inference, the CLI reads provider pricing and checks a conservative estimate against `--budget-usd` (default $0.10 for a single run, $1 for a comparison cohort). This admission check is separate from a provider billing cap. Jev uses the [evaluation API](https://vercel.com/docs/ai-gateway/modalities/evaluation), with no automatic model retries. Published run results and their limits belong in [verification](docs/verification.md).
+Inspect the foreground app:
 
-## Run the comparison yourself
+```sh
+jev-ios inspect \
+  --udid "$SIMULATOR_UDID" \
+  --bundle-id com.example.app \
+  --launch
+```
 
-After the setup above, use the same scenario with both engines:
+Then give it a goal and define success:
+
+```sh
+jev-ios run \
+  --udid "$SIMULATOR_UDID" \
+  --bundle-id com.example.app \
+  --goal 'Open the settings screen' \
+  --expect-label 'Settings' \
+  --expect-label 'Notifications' \
+  --allow-label 'Settings' \
+  --max-steps 6 \
+  --trace runs/settings.jsonl \
+  --report runs/settings.html
+```
+
+Repeat `--expect-label` for multiple required labels and `--allow-label` to constrain available taps. Scrolling requires `--allow-scroll`.
+
+Typing values can be supplied explicitly with `--text KEY=VALUE`. The model selects the key and the runner supplies its value to a verified empty field. The current AXe typing adapter accepts printable US ASCII and intentionally excludes secure or already-populated fields.
+
+## Use it in an agent loop
+
+The useful primitive is a fast verification loop that another agent can call after making a change.
+
+A coding or release agent can:
+
+1. build and launch the app,
+2. invoke a scenario,
+3. let Jev navigate the semantic UI,
+4. verify the expected state,
+5. inspect the resulting trace or report,
+6. continue working from the result.
+
+This keeps high-capability coding agents focused on engineering while delegating routine UI navigation to a smaller decision loop.
+
+[Scenario format](docs/scenarios.md) · [Architecture](docs/architecture.md) · [Brigade integration](docs/brigade-integration.md)
+
+The included Node wrapper at [`examples/brigade-call.mjs`](examples/brigade-call.mjs) demonstrates invoking the CLI from another agent host.
+
+## How verification works
+
+A run succeeds when its required labels appear in a fresh accessibility observation of the selected app. A model saying `DONE` is not sufficient.
+
+Before input, the runner checks the app and current screen again and resolves the selected target locally. The model chooses among observed actions while the executor owns device interaction and verification.
+
+For workflows that need stronger proof, add application-specific verification for backend effects, visual output, or other product acceptance criteria.
+
+## Compare decision engines
+
+The repo includes a reproducible comparison harness:
 
 ```sh
 jev-ios compare \
   --scenario scenarios/showcase.json \
-  --udid "$SIMULATOR_UDID" --bundle-id org.example.jevsimdemo \
-  --start-label Daybreak --start-label Lisbon --start-label Kyoto \
-  --pairs 3 --budget-usd 1 \
+  --udid "$SIMULATOR_UDID" \
+  --bundle-id org.example.jevsimdemo \
+  --start-label Daybreak \
+  --start-label Lisbon \
+  --start-label Kyoto \
+  --pairs 3 \
+  --budget-usd 1 \
   --vercel-project YOUR_EXISTING_VERCEL_PROJECT \
   --output-dir runs/comparison-01
 ```
 
-Open `runs/comparison-01/comparison.html` for synchronized normal-speed replays, every attempt, completion rates, task time, model latency, and estimated cost. The command restarts the app process before each attempt and checks the starting screen. Another app may need a fixture-data reset as well.
+Open `runs/comparison-01/comparison.html` for synchronized normal-speed replays and measurements.
 
-The default baseline is GPT-5.4 Nano with reasoning disabled and a strict JSON action schema. `--baseline-model` also selects the [Astra Standard and Fast profiles](docs/astra-comparison.md), which use low reasoning and a larger generation limit. Each model and profile belongs in a separate comparison. Read the [comparison protocol](docs/comparison.md) before changing models or apps.
+The harness can evaluate Jev against other structured decision engines while holding the scenario, observed controls, executor, and verification contract constant.
 
-## Run another app
+[Comparison protocol](docs/comparison.md) · [Machine-readable example](docs/media/comparison.json)
 
-Inspect the app to find its exact accessibility labels:
+## Design principles
 
-```sh
-jev-ios inspect \
-  --udid "$SIMULATOR_UDID" --bundle-id com.example.app --launch
+**Keep the model's job tiny.** The model chooses from observed controls. Device mechanics stay deterministic.
 
-jev-ios run \
-  --udid "$SIMULATOR_UDID" --bundle-id com.example.app \
-  --goal 'Open the settings screen' \
-  --expect-label 'Settings' --expect-label 'Notifications' \
-  --allow-label 'Settings' --max-steps 6 \
-  --trace runs/settings.jsonl --report runs/settings.html
+**Prefer semantic state.** Accessibility trees are compact, structured, and already describe the UI in terms users and assistive technologies can act on.
+
+**Verify after acting.** Execution is not success. The runner observes the app again and checks explicit expectations.
+
+**Make runs inspectable.** Decisions and device actions leave evidence that can be reviewed.
+
+**Compose instead of monolith.** The runner is useful as a CLI, but its contracts are separable so other agents and orchestration systems can call it.
+
+## Repository
+
+```text
+jev_ios/        Python runner and adapters
+scenarios/      Portable task definitions
+examples/       Integration examples
+docs/           Architecture, protocols, and evidence
+scripts/        Demo build tooling
+tests/          Offline test suite
 ```
 
-Repeat `--expect-label` to require several labels. Choose labels that distinguish the destination from the starting screen. Repeat `--allow-label` to restrict taps; scrolling requires `--allow-scroll`. The app must already be in the foreground unless `--launch` is supplied.
-
-Typing is optional. Supply exact values with `--text KEY=VALUE`; the model selects a key, and the device enters its value only into an empty field whose focus can be verified. The current AXe adapter supports printable US ASCII and excludes secure fields. Use fixture values, since observations and traces can contain app data.
-
-## Extend or call from Brigade
-
-[Scenarios](docs/scenarios.md) hold goals, expected labels, and run constraints in portable JSON. Python protocols separate the model, device, and runner so another adapter can supply the same contracts. See [architecture](docs/architecture.md) for the decision loop and extension points.
-
-The [Node wrapper](examples/brigade-call.mjs) lets a Brigade host invoke the local CLI today. It returns the final run result and rejects failed or interrupted runs. It does not register a native Brigade operation. [Integration notes](docs/brigade-integration.md) describe that boundary and the remaining work.
-
-## Evidence and limits
-
-A `verified` result means every required exact label appeared in a fresh accessibility observation of the selected app. Jev's `DONE` response cannot pass the run by itself. Labels provide a useful check for navigation; backend effects, visual quality, and full product acceptance need their own verification.
-
-The runner checks the app process and screen before input, resolves target coordinates locally, and stops after an uncertain device result. It rejects unsupported modal states and discards stale decisions. These checks reduce races; they do not make observation and input an atomic OS transaction. Keep the simulator dedicated to the run.
-
-Apps need usable accessibility controls. Canvas-only interfaces, missing Flutter semantics, arbitrary keyboard widgets, and custom overlays without useful accessibility state can prevent operation or reliable verification. The supported surface depends on the device adapter and the app, so test a small fixture flow before widening a scenario.
-
-Raw traces, screenshots, and recordings belong in ignored `runs/`. A model-selected action carries no permission to purchase, send messages, or change production data.
-
-## Contribute
-
-Fork the repo, create a branch, and open a pull request. Scenario examples, model and device adapters, and reproducible bug reports are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) for the workflow and evidence to include. Maintainers review changes before merging.
-
-Run the checks locally:
+## Development
 
 ```sh
 python3 -m unittest discover -s tests -v
@@ -140,10 +228,28 @@ node --check examples/brigade-call.mjs
 node --test tests/test_brigade.mjs
 ```
 
-Tests run without inference or simulator input.
+The test suite runs without model inference or simulator input.
 
-## Credits and license
+## Contributing
 
-Inspired by [Browser Use's Jev Ultrafast](https://github.com/browser-use/jev-ultrafast). Daybreak uses UIKit and applies the native controls, typography, navigation, and simulator review guidance in [Appllama's design skill](https://github.com/Appllama/appllama-skills/tree/dd5caaec3d5d50ad7fc0324da238119c6b7c3707). Source and design provenance are in [NOTICE.md](NOTICE.md).
+Contributions are welcome, especially additional device and model adapters, reusable scenarios, stronger verification primitives, agent integrations, and reproducible performance work.
 
-[MIT licensed](LICENSE). You can use, modify, and distribute the code under its terms.
+See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Safety and privacy
+
+Accessibility observations and local traces can contain application data. Use fixture data when possible and keep generated artifacts out of source control.
+
+A model-selected action does not grant permission to purchase, send messages, modify production data, or perform other consequential actions. The host remains responsible for defining the allowed action surface.
+
+## Credits
+
+Inspired by [Browser Use's Jev Ultrafast](https://github.com/browser-use/jev-ultrafast).
+
+Daybreak uses UIKit and incorporates native design guidance from [Appllama's design skill](https://github.com/Appllama/appllama-skills/tree/dd5caaec3d5d50ad7fc0324da238119c6b7c3707).
+
+See [NOTICE.md](NOTICE.md) for source and design provenance.
+
+## License
+
+[MIT](LICENSE)
