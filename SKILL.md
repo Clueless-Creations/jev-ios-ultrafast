@@ -12,6 +12,14 @@ Jev is the simulator interaction worker underneath the coding agent. Keep owners
 - **The local runner owns execution:** taps, typing, scrolling, freshness checks, and final label verification.
 - **Do not use Jev as a substitute for unit/integration tests or backend assertions.**
 
+## Choose the device path
+
+Prefer the **native simulator adapter** when the agent is running on the developer's Mac. It uses the `jev-ios` CLI and Apple's simulator tooling directly. Do not install or configure XcodeBuildMCP merely to use Jev.
+
+Use **MobAI as an optional transport** when the environment already uses MobAI or needs its broader device surface, such as real devices, Android, MCP/HTTP control, or cloud-agent workflows. Keep Jev scenarios and decision semantics unchanged across transports.
+
+Codex and Claude Code should both consume this same skill and CLI contract. Do not create agent-specific scenario formats.
+
 ## Start here
 
 If this app has no `.jev-ios/` directory:
@@ -184,7 +192,7 @@ When extending the tool rather than merely using it, route changes to the narrow
 | CLI command/options, artifacts, credentials | `jev_ios/cli.py` |
 | Scenario schema/defaults/validation | `jev_ios/scenario.py` |
 | Decision/execution/verification loop | `jev_ios/runner.py` |
-| Simulator observation/input | `jev_ios/device.py` |
+| Native Simulator observation/input | `jev_ios/device.py` |\n| Alternate device transports, including MobAI | implement `jev_ios/protocols.py` without changing scenario semantics |
 | Jev provider transport/choice validation | `jev_ios/model.py` |
 | Adapter interfaces | `jev_ios/protocols.py` |
 | HTML run evidence | `jev_ios/report.py` |
