@@ -13,7 +13,13 @@ curl -fsSL https://raw.githubusercontent.com/Clueless-Creations/jev-ios-ultrafas
 jev-ios doctor
 ```
 
-Then point it at an iOS Simulator and give it a goal.
+Then, from your iOS app repository:
+
+```sh
+jev-ios init --bundle-id com.yourcompany.yourapp
+```
+
+That creates `.jev-ios/smoke.json`, a runnable smoke-test script, and a short instruction file for coding agents. Inspect your app once, replace the placeholder goal and success label, and your agent has a repeatable simulator verification loop.
 
 <a href="https://clueless-creations.github.io/jev-ios-ultrafast/media/comparison.html"><img src="docs/media/comparison-preview.gif" alt="Jev controlling an iOS Simulator at normal speed" width="100%" /></a>
 
