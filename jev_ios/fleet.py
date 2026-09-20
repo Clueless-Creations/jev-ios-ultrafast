@@ -63,7 +63,7 @@ class NativeSession(AxeDevice):
 def open_session(worker: WorkerSpec, bundle_id: str):
     if worker.transport == "mobai":
         from .mobai import MobAIDevice
-        return MobAIDevice(worker.udid, bundle_id, base_url=worker.mobai_url, holder="jev-ios-"+worker.name)
+        return MobAIDevice(worker.udid, bundle_id, base_url=worker.mobai_url, app_ref=worker.mobai_app, holder="jev-ios-"+worker.name)
     if worker.host:
         from .remote import RemoteSession
         return RemoteSession(worker, bundle_id)
