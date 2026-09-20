@@ -180,7 +180,7 @@ class WorkerSpec:
                 text(self.mobai_app, "MobAI cloud app reference", 1000)
             if self.mobai_url is not None:
                 text(self.mobai_url, "MobAI URL", 1000)
-                if not re.fullmatch(r"https?://[^\\s]+", self.mobai_url):
+                if any(ch.isspace() for ch in self.mobai_url) or not self.mobai_url.startswith(("http://", "https://")):
                     raise ValueError("MobAI URL must be an http(s) API base URL")
         if self.host is not None and (not isinstance(self.host, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._@-]{0,252}", self.host)):
             raise ValueError("Use a trusted SSH host alias or user@host, without options")
