@@ -96,6 +96,8 @@ def parser():
     sub = p.add_subparsers(dest="command", required=True)
     sub.add_parser("doctor", help="Check local tools and credential presence; no model call")
     sub.add_parser("devices", help="List available simulator identifiers")
+    md = sub.add_parser("mobai-devices", help="List local, remote, and cloud devices visible through MobAI")
+    md.add_argument("--mobai-url", help="MobAI API base URL; defaults to MOBAI_URL or localhost")
     init = sub.add_parser("init", help="Create an agent-ready scenario and instructions in the current app repository")
     init.add_argument("--bundle-id", required=True, help="Application bundle identifier")
     init.add_argument("--name", default="UI smoke", help="Scenario name")
@@ -291,6 +293,10 @@ def main(argv=None):
             created = init_project(Path.cwd(), bundle_id=args.bundle_id, name=args.name, force=args.force)
             emit({"type": "init", **created})
             return 0
+        if args.command == "mobai-devices":
+            from .mobai import list_mobai_devices
+            emit({"type":"mobai_devices","devices":list_mobai_devices(base_url=args.mobai_url)})
+            return 0
         if args.command == "devices":
             completed = subprocess.run(["xcrun", "simctl", "list", "devices", "available", "--json"],
                                        capture_output=True, text=True, timeout=20, check=True)
@@ -303,7 +309,7 @@ def main(argv=None):
             from .device import find_axe
             emit({"type": "doctor", "axe": find_axe(), "xcrun": bool(shutil.which("xcrun")),
                   "gateway_credential_present": bool(os.environ.get("AI_GATEWAY_API_KEY") or os.environ.get("VERCEL_OIDC_TOKEN")),
-                  "vercel_cli_present": bool(shutil.which("vercel")), "platform": sys.platform})
+                  "vercel_cli_present": bool(shutil.which("vercel")), "mobai_url": os.environ.get("MOBAI_URL", "http://127.0.0.1:8686/api/v1"),\n                  "mobai_token_present": bool(os.environ.get("MOBAI_TOKEN")), "platform": sys.platform})
             return 0
         scenario = scenario_from_args(args) if args.command == "run" else None
         if scenario and args.engine == "baseline" and scenario.min_probability != 0:
