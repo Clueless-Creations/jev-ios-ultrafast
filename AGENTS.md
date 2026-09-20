@@ -2,7 +2,7 @@
 
 This repository contains a local iOS Simulator runner and the Daybreak fixture app. Read `README.md` and `docs/architecture.md` before extending the runtime. Code and validated scenario schemas define behavior; documentation describes them.
 
-For app usage and scenario authoring, read `SKILL.md`. For parallel work, also read `docs/parallel-testing.md`. For reference-led design research and design-language extraction, read `skills/reference-app-dissection/SKILL.md`. Runtime target IDs are never cross-device selectors.
+For app usage and scenario authoring, read `SKILL.md`. For parallel work, also read `docs/parallel-testing.md`. For complete reference-product dissection, read `skills/reference-app-dissection/SKILL.md`. Runtime target IDs are never cross-device selectors.
 
 ## Code map
 
@@ -26,7 +26,7 @@ For app usage and scenario authoring, read `SKILL.md`. For parallel work, also r
 | `examples/brigade-call.mjs` | Local host subprocess integration |
 | `demo/`, `scripts/build-demo.sh` | Native fixture app and local build |
 | `tests/` | Offline regression tests |
-| `skills/reference-app-dissection/` | Evidence-backed reference app study and reusable design-grammar handoff |
+| `skills/reference-app-dissection/` | Standalone Reference Product Profile generation from observable app behavior |
 
 Keep provider transport, device execution, and run policy separate. New adapters must preserve observed target identity, decision freshness, bounded calls, and uncertain-action handling. Model output must never become a shell command or unobserved coordinate.
 
@@ -47,6 +47,6 @@ Keep automated tests offline. Use live inference only for an authorized bounded 
 For Daybreak UI changes, apply the pinned Appllama guidance in `NOTICE.md` using the existing UIKit stack. Inspect the running app and record the full flow before claiming visual or motion quality. Do not claim performance measurements that were not collected.
 
 
-## Reference app studies
+## Reference product studies
 
-Keep design-study evidence separate from Jev runtime evidence. Jev semantic maps can orient the agent but do not establish visual, motion, gesture, haptic, audio, accessibility, or product-design claims. When a task asks to study a reference app, route to `skills/reference-app-dissection/SKILL.md`; preserve explicit unknowns and source/target separation.
+Keep Reference Product Profile evidence separate from Jev runtime evidence. Jev semantic maps can orient the agent but do not establish product-system, visual, motion, gesture, haptic, audio, accessibility, or exhaustive-coverage claims. Route complete reference-product studies to `skills/reference-app-dissection/SKILL.md`. The skill ends at understanding the reference and must not perform downstream target adaptation.
