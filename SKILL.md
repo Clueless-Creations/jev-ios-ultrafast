@@ -63,7 +63,7 @@ Mark release-critical tests explicitly. Map source globs from real ownership kno
 
 ## Plan, execute, summarize
 
-Use an explicit local/SSH pool or repeated `--udid` flags. `--devices auto` selects already booted local iOS simulators; it neither creates devices nor chooses an OS matrix for you. XcodeBuildMCP is not required. MobAI is not implemented as a Jev transport.
+Prefer a MobAI pool when the environment has MobAI, especially for multiple devices, physical devices, remote hosts, or cloud farms. Run `jev-ios mobai-devices`, then add `transport: \"mobai\"` workers using the returned MobAI device IDs. Jev keeps making the semantic decisions while MobAI owns claims, bridge/device routing, predicates, and execution. Use the native AXe/simctl path for the smallest local-only setup or transport comparison. `--devices auto` still selects booted native iOS simulators only. XcodeBuildMCP is not required.
 
 ```sh
 jev-ios plan --suite .jev-ios/suite.json --pool .jev-ios/pool.json --changed-since main
@@ -99,7 +99,7 @@ Reproduction is dry by default. Classify the failure as product behavior, incorr
 | CLI options and pricing admission | `jev_ios/cli.py`, `jev_ios/parallel_cli.py` |
 | Schedule lanes and bound API concurrency | `jev_ios/matrix.py` |
 | Cross-process device or fixture leases | `jev_ios/lease.py` |
-| Local Simulator or SSH device sessions | `jev_ios/fleet.py`, `jev_ios/remote.py` |
+| Local Simulator, SSH, or MobAI sessions | `jev_ios/fleet.py`, `jev_ios/remote.py`, `jev_ios/mobai.py` |
 | Semantic scouting and onboarding | `jev_ios/learning.py`, `jev_ios/onboarding.py` |
 | Device input and fresh observation | `jev_ios/device.py` |
 | Bounded action/verification loop | `jev_ios/runner.py` |
@@ -109,3 +109,18 @@ Reproduction is dry by default. Classify the failure as product behavior, incorr
 Read `AGENTS.md` and `docs/architecture.md` before runtime changes. Preserve observed target identity, fresh validation, finite confidence, bounded calls, secure-field redaction, and no replay after uncertain execution. No model output becomes a shell command, coordinate, credential, or authorization.
 
 Keep tests offline. Do not describe mock-backed concurrency tests as live Simulator speed benchmarks. Do not add hosted GitHub Actions workflows. Run the repo's Python and Node checks and report exactly which validation was performed.
+
+
+## Exploit MobAI instead of rebuilding it
+
+When MobAI is available, use its strengths deliberately:
+
+- Let MobAI provide local, physical, remote, distributed, and cloud device reach.
+- Let MobAI device claims enforce exclusive lanes in addition to Jev's scheduler.
+- Prefer MobAI semantic predicates and compact UI trees over coordinates/screenshots.
+- Use MobAI OCR only when the semantic tree is insufficient; do not make screenshots the normal Jev state.
+- Promote stable Jev-discovered paths to deterministic MobAI `.mob` flows so known navigation stops consuming inference.
+- Use `mobai-ci` for deterministic CI suites, sharding, report bundles, and provider device farms. Use Jev matrix runs where decisions remain dynamic.
+- Consider MobAI `simslim` only as an opt-in host optimization for dense local Simulator fleets, after qualifying the app.
+
+Do not route Jev through MobAI MCP inside the runtime. MCP is useful when the coding agent itself needs interactive MobAI tools. The Jev scheduler uses MobAI's HTTP/DSL surface directly, avoiding an extra agent/tool round trip.
