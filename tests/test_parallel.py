@@ -14,6 +14,7 @@ import unittest
 from unittest.mock import patch
 import uuid
 import xml.etree.ElementTree as ET
+import shutil
 
 from jev_ios.cli import main, parser
 from jev_ios.device import DeviceError, Snapshot, StaleObservation
@@ -402,7 +403,7 @@ class IsolationTests(unittest.TestCase):
         self.assertEqual(len(starts), 3)
         self.assertGreaterEqual(min(b - a for a, b in zip(starts, starts[1:])), .04)
     def test_native_reset_keeps_arguments_out_of_shell(self):
-        spec = replace(worker(), axe="/bin/true")
+        spec = replace(worker(), axe=shutil.which("true") or "/bin/true")
         device = NativeSession(spec, BUNDLE)
         with patch("jev_ios.fleet.subprocess.run", return_value=subprocess.CompletedProcess([], 0)), \
              patch.object(device, "_run", return_value=BUNDLE + ": 123") as launch:

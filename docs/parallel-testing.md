@@ -12,7 +12,7 @@ One coordinator schedules Python workers, not additional coding-agent sessions. 
 
 ## Prepare fixtures first
 
-The app must be built and installed on every selected simulator. The matrix command waits for each device to boot and launches the explicit bundle ID with `--terminate-running-process` before every case. It then checks the configured `start_labels` before making a model request.
+The app must be built and installed on every selected simulator. The matrix command waits for each device to boot, terminates the explicit bundle ID, and launches it before every case. Keeping termination and launch as separate native operations avoids a CoreSimulator hang seen with `--terminate-running-process` on some Xcode runtimes. It then checks the configured `start_labels` before making a model request.
 
 Relaunching does not reset persistent storage, authentication, or backend data. Supply app-supported test launch arguments or prepare data externally. A missing start label blocks that case and stops its lane rather than silently attempting to recover by tapping around.
 

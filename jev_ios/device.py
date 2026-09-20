@@ -164,6 +164,10 @@ class AxeDevice:
         if not isinstance(bundle_id, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", bundle_id):
             raise DeviceError("An explicit bundle ID is required")
         self.udid, self.bundle_id, self.pid = udid, bundle_id, None
+        # AXe treats simulator UUIDs as case-sensitive even though simctl does
+        # not. WorkerSpec normalizes UUIDs for stable pool keys, so keep an
+        # uppercase form for every AXe invocation.
+        self._axe_udid = udid.upper()
         self._consumed = set()
         # An explicit path is a binding, so never silently replace an invalid one.
         self.axe = find_axe(axe_path)
@@ -199,7 +203,7 @@ class AxeDevice:
         if self.pid is None:
             self._resolve_pid()
         try:
-            raw = json.loads(self._run([self.axe, "describe-ui", "--udid", self.udid]))
+            raw = json.loads(self._run([self.axe, "describe-ui", "--udid", self._axe_udid]))
         except (ValueError, TypeError) as exc:
             raise DeviceError("AXe returned invalid UI JSON") from exc
         return normalize_snapshot(raw, self.pid)
@@ -235,20 +239,20 @@ class AxeDevice:
             self._consumed.add(snapshot.observation_id)
             # Explicit HID down/up works with the visible Xcode Device Hub window;
             # its simulator-tap path can report success without delivering input.
-            self._run([self.axe, "tap", "-x", str(frame["x"] + frame["width"] / 2), "-y", str(frame["y"] + frame["height"] / 2), "--tap-style", "physical", "--udid", self.udid])
+            self._run([self.axe, "tap", "-x", str(frame["x"] + frame["width"] / 2), "-y", str(frame["y"] + frame["height"] / 2), "--tap-style", "physical", "--udid", self._axe_udid])
             if operation == "TYPE_TEXT":
                 focused = self.observe()
                 matches = [e for e in focused.elements if e["id"] == target_id and e["label"] == target["label"] and e["unique_id"] == target["unique_id"]]
                 if len(matches) != 1 or target_id not in focused.targets("type") or not matches[0]["focused"]:
                     raise DeviceError("Field focus or identity could not be verified after tap; no text entered")
-                self._run([self.axe, "type", "--stdin", "--udid", self.udid], text=text)
+                self._run([self.axe, "type", "--stdin", "--udid", self._axe_udid], text=text)
         elif operation in ("SCROLL_UP", "SCROLL_DOWN"):
             frame = current.frame
             x = frame["x"] + frame["width"] * 0.5
             high, low = frame["y"] + frame["height"] * 0.3, frame["y"] + frame["height"] * 0.7
             start, end = (low, high) if operation == "SCROLL_DOWN" else (high, low)
             self._consumed.add(snapshot.observation_id)
-            self._run([self.axe, "swipe", "--start-x", str(x), "--start-y", str(start), "--end-x", str(x), "--end-y", str(end), "--duration", "0.2", "--udid", self.udid])
+            self._run([self.axe, "swipe", "--start-x", str(x), "--start-y", str(start), "--end-x", str(x), "--end-y", str(end), "--duration", "0.2", "--udid", self._axe_udid])
         else:
             raise DeviceError("Unsupported operation")
         after = self.observe()

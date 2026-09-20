@@ -44,8 +44,15 @@ class NativeSession(AxeDevice):
             raise DeviceError("Simulator boot did not complete") from None
         if boot.returncode:
             raise DeviceError("Simulator boot did not complete")
-        output = self._run(["xcrun", "simctl", "launch", "--terminate-running-process", self.udid,
-                            self.bundle_id, *launch_args])
+        # Keep termination separate from launch. On some Xcode/CoreSimulator
+        # runtimes, simctl's combined --terminate-running-process form can
+        # hang even though the equivalent native operations complete.
+        try:
+            subprocess.run(["xcrun", "simctl", "terminate", self.udid, self.bundle_id],
+                           capture_output=True, timeout=20, check=False)
+        except (OSError, subprocess.SubprocessError):
+            raise DeviceError("Simulator app termination did not complete") from None
+        output = self._run(["xcrun", "simctl", "launch", self.udid, self.bundle_id, *launch_args])
         match = re.fullmatch(re.escape(self.bundle_id) + r":\s*([1-9][0-9]*)", output)
         if not match:
             raise DeviceError("Relaunch did not identify the selected application")
