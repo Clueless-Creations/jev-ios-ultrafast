@@ -1,37 +1,113 @@
 ---
 name: jev-ios
-description: Inspect an iOS test app, use bounded Jev learning for orientation, translate product intent into exact-label scenarios, select affected tests, and run local or SSH Simulator pools without spawning additional coding agents.
+description: Give a coding agent fast semantic mobile verification. Inspect or learn an authorized app, map product intent into bounded scenarios, select affected tests, and run them across native or MobAI device fleets without spawning additional coding agents.
 ---
 
 # Jev iOS
 
-You own product intent and acceptance criteria. Jev chooses among observed controls. The Python runner owns device input, freshness checks, and independent final-label verification. The scheduler owns device leases, fixture locks, API limits, and artifacts.
+Use Jev as the small decision worker underneath the coding agent.
 
-Use this tool for short semantic navigation and smoke flows. Keep logic tests, backend assertions, visual review, and product acceptance in their own tools. Never claim that every possible user journey has been tested.
+**You own:** product intent, code changes, fixture authority, acceptance criteria, and interpretation.
 
-## Orient once
+**Jev owns:** choosing among explicitly observed controls for a bounded goal.
 
-1. Read the app's requirements, existing tests, and agent guidance. Identify the authorized fixture app, installed build, simulator UUIDs, and expected starting state.
-2. Run `jev-ios doctor` and `jev-ios devices`. These do not make model requests. Build and install the app with the project's existing workflow.
-3. Run `jev-ios init --bundle-id com.example.app` in the app repo if no Jev scaffold exists. It preserves existing user files. Read `.jev-ios/AGENT.md`; add a pointer from existing AGENTS.md or CLAUDE.md deliberately, not by overwriting it.
-4. Inspect the running app with `jev-ios inspect --udid "$SIMULATOR_UDID" --bundle-id com.example.app --launch`. Labels and model target IDs come from observations, not guesses from source names or screenshots.
-5. For unfamiliar navigation, use Jev as a scout within an explicitly approved navigation allow-list. Without one, learning is observe-only and makes no model call.
+**The device transport owns:** observation, target resolution, freshness checks, input, and fresh evidence.
+
+**The scheduler owns:** device lanes, claims/leases, fixture locks, API limits, pricing admission, and artifacts.
+
+Do not create another coding-agent session for each device. Do not ask Jev to decide what success means.
+
+## First contact with a repo
+
+When a user points you at Jev and asks you to use it on an app:
+
+1. Read this skill.
+2. Read the app repo's own `AGENTS.md`, `CLAUDE.md`, tests, and product requirements.
+3. Determine the app bundle ID and existing build/install workflow. Do not invent build commands.
+4. Run `jev-ios doctor`.
+5. Detect the available device path:
+   - If MobAI is configured or the task needs physical, remote, cloud, Android-adjacent, or broad fleet coverage, prefer MobAI.
+   - Otherwise use native iOS Simulator through AXe + simctl.
+6. Run `jev-ios init --bundle-id <bundle>` if the app has no `.jev-ios/` scaffold.
+7. Inspect before authoring scenarios. Never guess accessibility labels.
+8. Run the smallest useful verification after the change. Scale only when the task warrants it.
+
+If a prerequisite is missing, report the exact missing prerequisite and continue with everything that can be prepared safely. Do not replace the app's build system, credentials, or fixture strategy merely to make Jev run.
+
+## Device-path decision
+
+### Prefer MobAI when available
+
+Use:
+
+```sh
+jev-ios mobai-devices
+```
+
+MobAI is the recommended substrate for multi-device, physical-device, remote, distributed, or cloud execution. Jev speaks MobAI HTTP/DSL directly at runtime.
+
+Use MobAI for:
+
+- device discovery and routing;
+- exclusive device claims;
+- compact semantic UI trees;
+- predicate-based execution;
+- local, physical, remote and cloud devices;
+- bridge lifecycle;
+- deterministic `.mob` flows;
+- CI/device-farm infrastructure.
+
+Keep Jev responsible for dynamic semantic decisions, bounded learning, scenario intent, impact selection, and aggregation.
+
+MobAI MCP is optional. Use it when **you**, the coding agent, need interactive device tools. Do not insert MCP between the Jev scheduler and MobAI.
+
+When a Jev-discovered path becomes stable and deterministic, prefer promoting it to a MobAI `.mob` flow rather than continuing to spend inference on every known step.
+
+### Native local path
+
+Use native AXe + `xcrun simctl` when the job is local iOS Simulator verification and the smaller dependency surface is preferable.
+
+XcodeBuildMCP is not required.
+
+## Learn before guessing
+
+Start with an exact observation:
+
+```sh
+jev-ios inspect --udid "$SIMULATOR_UDID" --bundle-id <bundle-id> --launch
+```
+
+For an unfamiliar area, use Jev as a bounded semantic scout. First inspect the current screen and identify navigation controls that the caller's task authorizes. Then allow only those labels:
 
 ```sh
 jev-ios learn \
-  --udid "$SIMULATOR_UDID" --bundle-id com.example.app \
+  --udid "$SIMULATOR_UDID" --bundle-id <bundle-id> \
   --allow-label Settings --allow-label Notifications --allow-label Back \
   --max-steps 8 --budget-usd 0.10 \
   --output .jev-ios/app-map-settings.json
 ```
 
-Replace these labels with controls you have inspected and authorized. Do not infer safety from a name or ask Jev to approve its own action surface. Learning does not type, scroll, or operate switches. Use fixture data and read the compact map instead of loading every raw UI dump into your context.
+Replace the example labels with labels actually observed in the authorized app.
 
-Maps are sampled orientation, not requirements. App-map v2 uses semantic IDs that exclude coordinates, PIDs and control values. Runtime target IDs and screen fingerprints are observation-specific: never replay them across devices or use them as stable selectors. Regenerate v1 maps; do not silently convert their hash semantics.
+Without an allow-list, learning is observe-only. Learning does not grant itself new authority. A control name is not evidence that activating it is safe.
 
-## Map intent to evidence
+Treat the resulting app map as orientation, not truth. It is a bounded sample. Runtime target IDs and screen fingerprints are observation-specific and must never become durable selectors.
 
-Describe a user outcome, not a coordinate script. Select exact final labels that distinguish the intended destination from the starting screen and global navigation. Inspect missing controls, overlays, accessibility semantics, and scrolling before changing expectations.
+## Translate intent into a scenario
+
+Start from the user-observable contract, not an implementation plan and not a tap script.
+
+For every scenario determine:
+
+1. **Goal:** what should a user be able to accomplish?
+2. **Start evidence:** what exact labels establish the prepared starting state?
+3. **Success evidence:** what exact labels distinguish success from the starting/global UI?
+4. **Allowed actions:** which observed controls are appropriate for this test?
+5. **Fixture text:** what explicit non-sensitive values may be typed?
+6. **Scroll authority:** is semantic scrolling actually needed?
+7. **Bound:** what is the smallest reasonable step limit?
+
+Example:
 
 ```json
 {
@@ -47,80 +123,181 @@ Describe a user outcome, not a coordinate script. Select exact final labels that
 }
 ```
 
-Keep short step limits and the default confidence threshold unless evidence justifies a change. Use exact fixture strings for typing. The current adapter accepts printable US ASCII only, in empty non-secure fields.
+Expected labels are assertions. Never weaken them merely because a run failed.
 
-Author scenarios in the app repository. **Do not modify `jev_ios/scenario.py` to add a test.** It validates the shared contract; tests are JSON data. Remove all scaffold placeholders before planning.
+Scenario JSON belongs in the app repository. Do not modify Jev's Python scenario validator to add an app test.
 
-## Put scenarios in a suite
+## Decide whether Jev is the right test
 
-Read `docs/parallel-testing.md` in the installed Jev repository for the complete schema. A suite adds case IDs, starting labels, launch arguments, explicit source-path mappings, tags, critical status, and resource locks without changing scenario semantics.
+Use Jev for semantic mobile flows where navigation is dynamic or expensive for the coding agent to perform itself.
 
-Prepare known fixture state for every case. Relaunching a process is not resetting its database or backend. Use test-only launch arguments already supported by the app or provision fixtures outside Jev. Starting labels must be checked after relaunch before a model call.
+Keep these elsewhere:
 
-Keep `fixture_isolation: shared` until devices truly have independent accounts and data. Only then use `per_device`. Shared resources still need matching `resource_locks` names. These are cooperating locks on the coordinator, not a distributed backend lock service.
+| Need | Better owner |
+| --- | --- |
+| Pure business logic | unit tests |
+| API/database effects | integration/API tests |
+| Exact pixels/layout | visual testing |
+| Accessibility compliance | dedicated accessibility checks |
+| Stable known mobile sequence | MobAI `.mob` / deterministic automation |
+| Dynamic semantic navigation | Jev |
+| Product/release acceptance | human/product-defined acceptance system |
 
-Mark release-critical tests explicitly. Map source globs from real ownership knowledge, not imagined dependencies. An unmapped change falls back to the full suite. Explicit `--only` and `--tag` filters restrict coverage and must be disclosed in the result.
+A verified Jev scenario proves its required observed labels for that run. Nothing more.
 
-## Plan, execute, summarize
+## Build the suite
 
-Prefer a MobAI pool when the environment has MobAI, especially for multiple devices, physical devices, remote hosts, or cloud farms. Run `jev-ios mobai-devices`, then add `transport: \"mobai\"` workers using the returned MobAI device IDs. Jev keeps making the semantic decisions while MobAI owns claims, bridge/device routing, predicates, and execution. Use the native AXe/simctl path for the smallest local-only setup or transport comparison. `--devices auto` still selects booted native iOS simulators only. XcodeBuildMCP is not required.
+A suite adds scheduling metadata without changing scenario semantics.
 
-```sh
-jev-ios plan --suite .jev-ios/suite.json --pool .jev-ios/pool.json --changed-since main
-jev-ios matrix --suite .jev-ios/suite.json --pool .jev-ios/pool.json \
-  --mode shard --parallel 4 --api-concurrency 2 --requests-per-second 4 --budget-usd 1
+Map cases to source paths using actual ownership knowledge. Mark critical flows explicitly. Unknown changed paths conservatively select the full suite.
+
+Keep `fixture_isolation: shared` until accounts and backend data are truly independent across devices. Relaunching an app is not a fixture reset.
+
+For device pools, prefer MobAI workers when the fleet is available:
+
+```json
+{
+  "schema": "jev-ios/pool/v1",
+  "devices": [
+    {"name": "native-sim", "udid": "<simulator-uuid>"},
+    {"name": "mobai-device", "transport": "mobai", "udid": "<mobai-device-id>"},
+    {
+      "name": "cloud-device",
+      "transport": "mobai",
+      "udid": "<cloud-device-id>",
+      "mobai_url": "https://host.example/api/v1",
+      "mobai_app": "<provider-app-ref>"
+    }
+  ]
+}
 ```
 
-`shard` runs each selected case once on an available lane. `matrix` runs each selected case on every selected device. Always inspect a plan before a large matrix. A four-device matrix reserves for four executions per case; more lanes do not reduce the total inference work.
+Never put API tokens in pool files. `MOBAI_TOKEN`, gateway credentials, SSH keys, and provider credentials stay in the execution environment.
 
-The coordinator applies one conservative aggregate pricing admission, one request-rate limit, and one API-concurrency gate. Each device has a lease and independent model client. No extra frontier-agent sessions are launched. Provider authentication/rate-limit errors stop further fanout rather than retrying requests automatically.
+## Plan before expensive execution
 
-Read `summary.json` or the final `matrix_result` event first. Load individual traces only for relevant failures. Similar failure groups are shared symptoms, not established root causes. Report the selection scope, installed build provenance if supplied, devices, verified count, and unresolved outcomes.
-
-## Diagnose without erasing evidence
-
-Exit codes for matrix/verify: 0 means every selected cell has label evidence; 2 means not verified; setup/configuration errors use 1. Interrupted matrix runs use 130. Planning, init and observe-only learning returning 0 do not mean the app passed tests.
-
-Use the returned unique run directory. Never delete a previous trace just to reuse its filename. A failed or incomplete run is not made green by hiding a skipped cell or weakening an assertion.
+For a change:
 
 ```sh
-jev-ios verify --manifest runs/<run-directory>/matrix.json
-jev-ios reproduce --manifest runs/<run-directory>/matrix.json --cell <cell-id>
+jev-ios plan \
+  --suite .jev-ios/suite.json --pool .jev-ios/pool.json \
+  --changed-since main --mode shard
 ```
 
-Reproduction is dry by default. Classify the failure as product behavior, incorrect scenario intent, accessibility, fixture/start state, device transport, or provider error. Repair the responsible layer, restore the fixture, and add `--execute` only when ready to authorize a fresh run. Uncertain/cancelled input needs `--acknowledge-uncertain` after repair. This reruns intent, not old actions, and does not reinstall the original binary.
+Read the plan. Check selected cases, omitted cases, devices, fixture isolation, and whether an unmapped source change forced full-suite coverage.
+
+Then execute:
+
+```sh
+jev-ios matrix \
+  --suite .jev-ios/suite.json --pool .jev-ios/pool.json \
+  --changed-since main --mode shard --parallel 4 \
+  --api-concurrency 2 --requests-per-second 4 --budget-usd 1
+```
+
+Use `shard` for fast affected-flow verification. Use `matrix` only when the scenario × device product is intentional coverage.
+
+More device lanes do not reduce inference count. A matrix multiplies executions by device count.
+
+## Consume results efficiently
+
+Read, in order:
+
+1. final CLI `matrix_result`;
+2. `summary.json`;
+3. `matrix.json` if machine-readable detail is needed;
+4. only the relevant failed cell's `result.json` and `trace.jsonl`;
+5. HTML reports when human replay helps.
+
+Do not load every trace into context by default.
+
+Report:
+
+- selection scope;
+- app/build provenance when known;
+- device/pool scope;
+- verified count;
+- blocked, uncertain, skipped, or failed outcomes;
+- whether the result is semantic UI evidence only.
+
+Similar failure groups are shared symptoms, not proven root causes.
+
+## Diagnose without gaming the test
+
+Classify a non-verified result before editing:
+
+- product behavior;
+- incorrect scenario intent;
+- missing/weak accessibility semantics;
+- fixture or starting state;
+- device transport;
+- provider/model;
+- unsupported verification type.
+
+Do not immediately rewrite the scenario and do not immediately rewrite product code.
+
+Use:
+
+```sh
+jev-ios verify --manifest runs/<run>/matrix.json
+jev-ios reproduce --manifest runs/<run>/matrix.json --cell <cell-id>
+```
+
+Reproduction is dry by default. Inspect the frozen scenario, repair the responsible layer, restore the fixture, then add `--execute` for a fresh run. An uncertain action is never blindly replayed.
+
+## MobAI-specific operating rules
+
+When using MobAI:
+
+- Prefer compact semantic UI state over screenshots.
+- Prefer semantic predicates over coordinates.
+- Let MobAI claims provide exclusive device ownership.
+- Let Jev re-observe before dispatch so stale decisions are rejected.
+- Treat a transport failure after input as uncertain.
+- Never expose MobAI lease tokens, provider tokens, secure-field labels, or secure-field values to Jev.
+- Use `mobai_app` for provider-backed cloud sessions when the MobAI host requires an app ref.
+- Use MobAI OCR/screenshots only as targeted fallback/evidence. Do not silently convert them into Jev execution authority.
+- Consider `simslim` only as opt-in local-host tuning after qualifying the app.
 
 ## Extend the narrowest layer
 
 | Need | Surface |
 | --- | --- |
-| Add a user-flow check | Scenario JSON in the app repo |
-| Map tests to sources, fixtures, and devices | Suite/pool JSON; `jev_ios/suite.py` validates them |
-| CLI options and pricing admission | `jev_ios/cli.py`, `jev_ios/parallel_cli.py` |
-| Schedule lanes and bound API concurrency | `jev_ios/matrix.py` |
-| Cross-process device or fixture leases | `jev_ios/lease.py` |
-| Local Simulator, SSH, or MobAI sessions | `jev_ios/fleet.py`, `jev_ios/remote.py`, `jev_ios/mobai.py` |
-| Semantic scouting and onboarding | `jev_ios/learning.py`, `jev_ios/onboarding.py` |
-| Device input and fresh observation | `jev_ios/device.py` |
-| Bounded action/verification loop | `jev_ios/runner.py` |
-| Jev transport and choice validation | `jev_ios/model.py` |
-| Aggregation and reports | `jev_ios/matrix_report.py`, `jev_ios/report.py` |
+| Add an app flow | scenario JSON in the app repo |
+| Source/fixture/device mapping | suite/pool JSON |
+| Native Simulator execution | `jev_ios/device.py`, `jev_ios/fleet.py` |
+| MobAI transport | `jev_ios/mobai.py` |
+| SSH transport | `jev_ios/remote.py` |
+| Parallel scheduling | `jev_ios/matrix.py` |
+| Learning/onboarding | `jev_ios/learning.py`, `jev_ios/onboarding.py` |
+| Jev decisions | `jev_ios/model.py` |
+| Verification loop | `jev_ios/runner.py` |
+| Reports | `jev_ios/matrix_report.py`, `jev_ios/report.py` |
 
-Read `AGENTS.md` and `docs/architecture.md` before runtime changes. Preserve observed target identity, fresh validation, finite confidence, bounded calls, secure-field redaction, and no replay after uncertain execution. No model output becomes a shell command, coordinate, credential, or authorization.
+Before changing runtime code, read `AGENTS.md` and `docs/architecture.md`.
 
-Keep tests offline. Do not describe mock-backed concurrency tests as live Simulator speed benchmarks. Do not add hosted GitHub Actions workflows. Run the repo's Python and Node checks and report exactly which validation was performed.
+Preserve these invariants:
 
+- the model chooses only offered observed targets;
+- target identity survives transport translation;
+- secure fields are redacted at the device boundary;
+- state is refreshed before input;
+- uncertain input is not replayed;
+- model calls and steps are bounded;
+- success comes from fresh evidence, not a model declaration;
+- credentials and host configuration never enter scenarios;
+- no model output becomes a shell command, arbitrary coordinate, credential, or authorization.
 
-## Exploit MobAI instead of rebuilding it
+## Before declaring work complete
 
-When MobAI is available, use its strengths deliberately:
+For an app change, run the relevant Jev verification when prerequisites are available and report the exact scope.
 
-- Let MobAI provide local, physical, remote, distributed, and cloud device reach.
-- Let MobAI device claims enforce exclusive lanes in addition to Jev's scheduler.
-- Prefer MobAI semantic predicates and compact UI trees over coordinates/screenshots.
-- Use MobAI OCR only when the semantic tree is insufficient; do not make screenshots the normal Jev state.
-- Promote stable Jev-discovered paths to deterministic MobAI `.mob` flows so known navigation stops consuming inference.
-- Use `mobai-ci` for deterministic CI suites, sharding, report bundles, and provider device farms. Use Jev matrix runs where decisions remain dynamic.
-- Consider MobAI `simslim` only as an opt-in host optimization for dense local Simulator fleets, after qualifying the app.
+For Jev runtime changes, run:
 
-Do not route Jev through MobAI MCP inside the runtime. MCP is useful when the coding agent itself needs interactive MobAI tools. The Jev scheduler uses MobAI's HTTP/DSL surface directly, avoiding an extra agent/tool round trip.
+```sh
+python3 -m unittest discover -s tests -v
+node --check examples/brigade-call.mjs
+node --test tests/test_brigade.mjs
+```
+
+Keep offline contract tests distinct from live device qualification and performance measurements.
