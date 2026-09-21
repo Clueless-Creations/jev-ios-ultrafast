@@ -136,7 +136,8 @@ class MobAIDevice:
         if not isinstance(claim,dict) or not claim.get("leaseToken"):
             raise MobAIError("MobAI did not return a device lease")
         self.lease=claim["leaseToken"]
-        self.client.request("POST",f"/devices/{urllib.parse.quote(self.device_id,safe='')}/bridge/start",\n                            ({"app":self.app_ref} if self.app_ref else {}),self.lease)
+        self.client.request("POST",f"/devices/{urllib.parse.quote(self.device_id,safe='')}/bridge/start",
+                            ({"app":self.app_ref} if self.app_ref else {}),self.lease)
         return self
 
     def __exit__(self,*_):

@@ -1,6 +1,6 @@
 # Architecture
 
-The Mac owns observation and input. Jev evaluates a compact accessibility snapshot and returns choices from the action space offered for that snapshot. The runner validates those choices, executes one operation, and obtains fresh evidence.
+The device transport owns observation and input. Jev evaluates a compact semantic snapshot and returns choices from the action space offered for that snapshot. The runner validates those choices, executes one operation, and obtains fresh evidence. The transport may be native AXe/simctl, an SSH-connected native session, or MobAI.
 
 ```mermaid
 flowchart LR
@@ -32,7 +32,7 @@ The comparison harness uses zero confidence threshold for both engines. Both ret
 
 ## Observation and execution
 
-The AXe adapter binds the simulator and app process. It normalizes accessible controls, filters unsupported state, and keeps coordinates in the local device layer. The model sees IDs, types, labels, values, and enabled state. Fields identified as secure are redacted before export; ordinary app labels and values may still contain private data.
+The native AXe adapter binds the simulator and app process. It normalizes accessible controls, filters unsupported state, and keeps coordinates in the local device layer. The model sees IDs, types, labels, values, and enabled state. Fields identified as secure are redacted before export; ordinary app labels and values may still contain private data.
 
 Before dispatch, the adapter observes again and compares the screen fingerprint. A changed screen makes the decision stale; the runner discards it and asks again within the remaining budget. Coordinates come from the freshly observed target. The adapter consumes a dispatched observation so the same observation cannot replay input.
 
@@ -73,7 +73,15 @@ Fixture state is separate from process state. The shared-fixture default seriali
 
 Plans record selection reasons and source/build provenance. Unknown source changes select the full suite. Missing, skipped, or interrupted cells cannot become passing evidence. A final report groups failure symptoms without asserting root causes. Reproduction is an explicitly authorized new scenario run, not recorded action replay.
 
-Semantic learning now requires a caller-approved navigation allow-list. Without it, learning observes only. App-map v2 semantic IDs support orientation across sampled screens but are never reusable runtime target IDs. Neither map generation nor source-path selection changes the product's acceptance criteria. Cross-device decision caching, vendor provisioning and MobAI execution are not implemented.
+Semantic learning requires a caller-approved navigation allow-list. Without it, learning observes only. App-map v2 semantic IDs support orientation across sampled screens but are never reusable runtime target IDs. Neither map generation nor source-path selection changes the product's acceptance criteria. Cross-device decision caching and automatic vendor provisioning are not implemented.
+
+## MobAI transport
+
+`MobAIDevice` implements the same device boundary through MobAI's HTTP/DSL surface. A session claims the selected MobAI device, starts its bridge, obtains compact semantic UI state, converts observed controls into opaque Jev target IDs, and retains MobAI predicates inside the device layer. Before input it re-observes and rejects stale state. Tap, caller-supplied typing, and semantic scrolling execute through bounded DSL v0.2 actions followed by stable-state/fresh observation.
+
+The Jev model never receives MobAI DSL, lease tokens, provider credentials, or arbitrary coordinates. Secure fields are redacted at the device boundary. Duplicate accessibility identifiers retain occurrence identity in the local MobAI predicate. A transport failure after dispatch is uncertain and is not automatically replayed.
+
+MobAI is therefore a device substrate, not a second decision engine. It can expose local, physical, remote, distributed, or provider-backed cloud devices without changing Jev scenario semantics. MobAI MCP remains optional for interactive coding-agent use; the Jev runtime talks directly to the HTTP/DSL surface. Stable known routes can graduate from dynamic Jev decisions to deterministic MobAI `.mob` flows.
 
 See [parallel testing](parallel-testing.md) for the executable schemas, result contracts, operational limits, and qualification steps.
 

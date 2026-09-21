@@ -1,40 +1,57 @@
 # Jev iOS Ultrafast
 
-Give your coding agent a simulator verification tool, not another coding agent to manage.
+**Give this repo to your coding agent. It can learn the app, create semantic test scenarios, and verify UI work across local, remote, physical, and cloud devices without spawning more coding agents.**
 
-Jev chooses the next action from an app's accessibility tree. A Python runner checks the choice, performs the action, and verifies the result from a fresh observation. Run one scenario, share a suite across multiple simulators, or run the same suite on every device in a pool.
+Jev handles the tiny repeated decisions. [MobAI](https://mobai.run/) handles device infrastructure when you need a fleet. Your coding agent keeps the engineering context.
 
-[Agent skill](SKILL.md) · [Product dissection](skills/reference-app-dissection/SKILL.md) · [Quick start](#quick-start) · [Parallel testing](docs/parallel-testing.md) · [Watch the demo](https://clueless-creations.github.io/jev-ios-ultrafast/media/comparison.html) · [Architecture](docs/architecture.md) · [MIT](LICENSE)
+[Agent skill](SKILL.md) · [Agent setup](docs/agent-integration.md) · [MobAI + devices](docs/device-adapters.md) · [Parallel testing](docs/parallel-testing.md) · [Architecture](docs/architecture.md) · [Demo](https://clueless-creations.github.io/jev-ios-ultrafast/media/comparison.html) · [MIT](LICENSE)
 
-<a href="https://clueless-creations.github.io/jev-ios-ultrafast/media/comparison.html"><img src="docs/media/comparison-preview.gif" alt="Recorded Jev and baseline simulator runs, with synchronized replay controls" width="100%" /></a>
+<a href="https://clueless-creations.github.io/jev-ios-ultrafast/media/comparison.html"><img src="docs/media/comparison-preview.gif" alt="Jev controlling an iOS Simulator and verifying the result" width="100%" /></a>
 
-## The loop
+## Give it to your agent
+
+Point Codex, Claude Code, or another shell-capable coding agent at this repository and say:
+
+> Use https://github.com/Clueless-Creations/jev-ios-ultrafast to verify this app. Read its SKILL.md first. Set Jev up non-destructively, learn only the app areas needed for this task, create focused scenarios from observed UI state, and run the relevant verification after user-facing changes. Prefer MobAI when it is already available or when multiple, physical, remote, or cloud devices are useful. Do not weaken acceptance criteria to make a test pass.
+
+The agent should then follow [SKILL.md](SKILL.md). You should not need to teach it Jev's Python internals, MobAI DSL, or a second scenario language.
+
+## What happens
 
 ```text
-Coding agent defines intent and expected evidence
-                  |
-          scenario or test suite
-                  |
-        Python device scheduler
-         /         |         \
-  Simulator A  Simulator B  SSH-connected Mac
-       |           |             |
-       +--- bounded Jev API calls +
-                  |
-       fresh observations and receipts
-                  |
-       one summary for the coding agent
+                    coding agent
+                         |
+                      SKILL.md
+                         |
+           product intent + code change
+                         |
+              learn / inspect / plan
+                         |
+                         v
+                        Jev
+             small semantic decisions
+                         |
+                  Python scheduler
+                 /                \
+        native Simulator          MobAI
+         AXe + simctl      claims + compact UI + DSL
+                 \                /
+                  device / cloud fleet
+                         |
+                  fresh evidence
+                         |
+                  compact summary
+                         |
+                    coding agent
 ```
 
-Each device gets an exclusive lane. Each lane has its own model client; one coordinator limits API concurrency, request rate, and the total pricing reservation. The worker is Python code, not a separate Codex or Claude session.
+There is one engineering agent, not one agent per device. Parallel lanes are Python workers making bounded Jev API calls. The expensive agent gets the result, not forty simulator transcripts.
 
-The native path uses Apple's `xcrun simctl` and standalone [AXe](https://github.com/cameroncooke/AXe). **XcodeBuildMCP and MCP are not required.** Jev runs through [TypeSafe](https://docs.typesafe.ai/introduction) and Vercel AI Gateway. Screenshots are not sent to the model.
+## Fastest path
 
-## Quick start
+### 1. Install Jev
 
-For local device execution, you need macOS, Xcode with an iOS Simulator runtime, Python 3.11+, and AXe. The included Daybreak build targets Apple Silicon. A coordinator using only SSH devices can run on Linux; each remote device host still needs a Mac, Xcode, AXe, and this same Jev revision.
-
-Clone and install:
+macOS local-only path:
 
 ```sh
 git clone https://github.com/Clueless-Creations/jev-ios-ultrafast.git
@@ -43,51 +60,46 @@ python3 -m venv .venv
 . .venv/bin/activate
 python -m pip install -e .
 jev-ios doctor
-jev-ios devices
 ```
 
-AXe is discovered on PATH. Set `JEV_IOS_AXE` to use an explicit executable. Discovery of a binary bundled with another tool is only a convenience.
+The native iOS Simulator path needs Python 3.11+, Xcode and standalone [AXe](https://github.com/cameroncooke/AXe). XcodeBuildMCP is **not** required.
 
-Set `AI_GATEWAY_API_KEY` or `VERCEL_OIDC_TOKEN` in the coordinator's environment. Alternatively, pass `--vercel-project YOUR_EXISTING_VERCEL_PROJECT` to an inference command using an existing Vercel CLI login. Credentials are not stored in scenarios, reports, or SSH device messages.
+Set `AI_GATEWAY_API_KEY` or `VERCEL_OIDC_TOKEN` on the coordinator, or use `--vercel-project` with an existing Vercel CLI login. Credentials do not belong in scenarios or reports.
 
-### Try the included app
+### 2. Initialize the app repo
 
-Choose a simulator UUID from `jev-ios devices`:
-
-```sh
-export SIMULATOR_UDID="<simulator UUID>"
-xcrun simctl bootstatus "$SIMULATOR_UDID" -b
-./scripts/build-demo.sh
-xcrun simctl install "$SIMULATOR_UDID" runs/JevDemo.app
-
-jev-ios matrix \
-  --suite examples/parallel/daybreak-suite.json \
-  --udid "$SIMULATOR_UDID" \
-  --parallel 1 --budget-usd 1
-```
-
-The command prints the manifest and HTML report paths. Every run gets a new directory under `runs/`; prior evidence is never deleted. The suite relaunches Daybreak before each case and checks its expected starting labels.
-
-### Add it to your app
-
-From your app repository:
+From the app you want the agent to work on:
 
 ```sh
 jev-ios init --bundle-id com.example.app
 ```
 
-Init creates `.jev-ios/smoke.json`, `suite.json`, a local skill and agent guide, and `run-smoke.sh`. Replace the placeholder goal, success labels, and starting labels using observations of your app. Add the generated guide's pointer to your existing `AGENTS.md` or `CLAUDE.md`, and keep `/runs/` out of source control. Init does not overwrite those existing agent files or user-edited scenarios.
+This creates:
 
-```sh
-jev-ios inspect --udid "$SIMULATOR_UDID" --bundle-id com.example.app --launch
-.jev-ios/run-smoke.sh
+```text
+.jev-ios/
+  AGENT.md       small local handoff for the coding agent
+  SKILL.md       the complete Jev operating skill
+  smoke.json     first scenario
+  suite.json     scenario scheduling + impact mapping
+  run-smoke.sh   one-command local verification
+  .gitignore     ignores Jev files inside .jev-ios
 ```
 
-The app must already be built and installed. The runner does not infer build settings, sign apps, or reset backend data. [Agent integration](docs/agent-integration.md) explains the complete contract.
+It does not overwrite your existing `AGENTS.md`, `CLAUDE.md`, or root `.gitignore`. Add one pointer to the agent guide and add `/runs/` to the host repo root `.gitignore` so private traces/reports are not accidentally committed:
 
-## Learn an unfamiliar app
+> For user-facing mobile work, read `.jev-ios/AGENT.md` and `.jev-ios/SKILL.md`, then run the relevant Jev verification before declaring the change complete.
 
-Start with `inspect`. Then approve the navigation controls that Jev may use to sample other screens:
+### 3. Let the agent orient itself
+
+For a local Simulator:
+
+```sh
+jev-ios devices
+jev-ios inspect --udid "$SIMULATOR_UDID" --bundle-id com.example.app --launch
+```
+
+For an unfamiliar app area, the agent can use bounded Jev learning after it has inspected and explicitly approved navigation controls:
 
 ```sh
 jev-ios learn \
@@ -97,71 +109,164 @@ jev-ios learn \
   --output .jev-ios/app-map-settings.json
 ```
 
-Replace those example labels with exact controls from your authorized test app. Without an allow-list, learning only observes the current screen: no navigation and no model request. A label is not proof that an action is safe; approving it is the caller's responsibility.
+The map is orientation, not product truth. The agent still defines success from the requested behavior and verifies exact observed labels.
 
-The map records sampled screens and observed transitions. It helps an agent orient itself, but does not define product requirements or prove test coverage. App-map v2 uses semantic screen IDs; regenerate old v1 maps rather than treating their hashes as reusable target IDs.
-
-## Run in parallel
-
-Share selected cases across already booted local iOS simulators:
+### 4. Verify the change
 
 ```sh
+.jev-ios/run-smoke.sh
+```
+
+Or select tests affected by the current change and fan them out:
+
+```sh
+jev-ios plan --suite .jev-ios/suite.json --pool .jev-ios/pool.json --changed-since main
+
 jev-ios matrix \
-  --suite .jev-ios/suite.json --devices auto \
-  --mode shard --parallel 4 \
+  --suite .jev-ios/suite.json --pool .jev-ios/pool.json \
+  --changed-since main --mode shard --parallel 4 \
   --api-concurrency 2 --requests-per-second 4 --budget-usd 1
 ```
 
-Run every selected case on every explicitly configured device:
+The agent reads `summary.json` first and opens individual traces only when needed.
+
+## Jev + MobAI
+
+MobAI is the recommended transport when you want more than the smallest local-Simulator setup.
+
+```sh
+export MOBAI_URL=http://127.0.0.1:8686/api/v1
+jev-ios mobai-devices
+```
+
+Then put the returned device IDs in a pool:
+
+```json
+{
+  "schema": "jev-ios/pool/v1",
+  "devices": [
+    {"name": "local-sim", "udid": "11111111-1111-1111-1111-111111111111"},
+    {"name": "mobai-phone", "transport": "mobai", "udid": "<mobai-device-id>"},
+    {
+      "name": "cloud-iphone",
+      "transport": "mobai",
+      "udid": "<cloud-device-id>",
+      "mobai_url": "https://your-mobai-host/api/v1",
+      "mobai_app": "<provider-app-ref>"
+    }
+  ]
+}
+```
+
+Jev talks directly to MobAI's HTTP/DSL surface. MobAI MCP is optional and useful when the coding agent itself wants interactive device tools. It is not required in the Jev runtime.
+
+The split is deliberate:
+
+| Jev owns | MobAI owns |
+| --- | --- |
+| Dynamic next-action decisions | Device discovery and reach |
+| Bounded app learning | Exclusive device claims |
+| Product scenarios | Compact semantic UI + predicates |
+| Change-impact selection | Local, physical, remote and cloud devices |
+| Result aggregation | Bridge lifecycle and device execution |
+| Dynamic verification | Deterministic `.mob` flows and CI infrastructure |
+
+When Jev discovers a route that becomes stable, promote that route to a deterministic MobAI `.mob` flow instead of paying an inference tax forever. Use Jev again when navigation is uncertain or the product changes.
+
+See [device adapters](docs/device-adapters.md).
+
+## Parallel verification
+
+`shard` runs each selected scenario once on an available device:
 
 ```sh
 jev-ios matrix \
   --suite .jev-ios/suite.json --pool .jev-ios/pool.json \
-  --mode matrix --parallel 4 --budget-usd 2
+  --mode shard --parallel 8 --budget-usd 1
 ```
 
-Pools can mix local simulators and SSH-connected Macs. No device is erased or cloned automatically. Use independent fixture accounts/data before setting `fixture_isolation` to `per_device`; the default `shared` setting serializes cases to protect shared test data.
-
-Inspect an impact-selected plan without inference or device input:
+`matrix` runs every selected scenario on every selected device:
 
 ```sh
-jev-ios plan \
+jev-ios matrix \
   --suite .jev-ios/suite.json --pool .jev-ios/pool.json \
-  --changed-since main --mode shard
+  --mode matrix --parallel 8 --budget-usd 2
 ```
 
-Selection uses explicit source-path mappings, not model guesses. Critical and unmapped scenarios remain included. An unknown changed path selects the full suite. [Parallel testing](docs/parallel-testing.md) covers schemas, SSH setup, fixture isolation, result codes, and reproduction.
+Keep `fixture_isolation: shared` until accounts/data really are independent per device. Parallel devices do not magically make a shared backend fixture safe.
 
-## Read results, not forty transcripts
+For dense local Simulator hosts, MobAI's `simslim` can be evaluated as an optional host optimization after qualifying your app. It is not required by Jev.
 
-A matrix run writes `summary.json`, `matrix.json`, `index.html`, and `junit.xml`, plus a frozen scenario, trace, result, and HTML report for every attempted cell.
+## Scenario contract
+
+A scenario is product intent plus bounded authority:
+
+```json
+{
+  "schema": "jev-ios/scenario/v1",
+  "name": "Notification settings",
+  "goal": "Open notification settings and reach the push-notification controls.",
+  "expect_labels": ["Notifications", "Push notifications"],
+  "allow_labels": ["Settings", "Notifications"],
+  "allow_scroll": false,
+  "text_values": {},
+  "max_steps": 6,
+  "min_probability": 0.55
+}
+```
+
+Jev chooses only from controls the device adapter observed. Before input, the adapter checks fresh state again. A model saying `DONE` never makes a run pass. Verification requires the expected labels in fresh device evidence.
+
+A passing scenario proves those observed labels for that run. It does not prove backend state, pixels, accessibility quality, or every possible journey. Keep unit, integration, visual and release checks where they belong.
+
+## Results designed for agents
+
+A matrix run writes:
+
+```text
+runs/matrix-.../
+  summary.json       read this first
+  matrix.json        complete machine-readable manifest
+  index.html         human overview
+  junit.xml
+  <cell>/
+    scenario.json    frozen intent
+    trace.jsonl      detailed evidence
+    result.json
+    report.html
+```
+
+Verify saved evidence without touching a device:
 
 ```sh
-jev-ios verify --manifest runs/<run-directory>/matrix.json
-jev-ios reproduce --manifest runs/<run-directory>/matrix.json --cell <cell-id>
+jev-ios verify --manifest runs/<run>/matrix.json
 ```
 
-`verify` is read-only. `reproduce` prepares a plan by default; add `--execute` to authorize a new run after inspecting the evidence and resetting the fixture. It reruns the frozen intent, not recorded taps. Uncertain or cancelled cases require a separate acknowledgement.
+Prepare a deliberate reproduction:
 
-A successful test means all required exact labels appeared in the selected app. It does not establish backend correctness, visual quality, or exhaustive release acceptance. Missing, skipped, or interrupted cells do not produce a passing matrix result.
+```sh
+jev-ios reproduce --manifest runs/<run>/matrix.json --cell <cell-id>
+```
 
-## Supported today
+Reproduction is dry by default. Add `--execute` only after the agent has classified the failure and restored the fixture. Jev never blindly replays an action whose outcome is uncertain.
 
-Native Simulator execution, local and SSH device pools, sharding, device matrices, explicit change-impact selection, bounded learning, and result aggregation are implemented. The parallel transport and scheduler have offline regression tests; real multi-Simulator and remote-Mac qualification is still required for a particular machine and app. No parallel speedup is claimed from those tests.
+## What is implemented
 
-MobAI remains a proposed adapter, not an available runtime switch. Vendor device-farm provisioning, physical iOS devices, Android, automatic scenario generation, and cross-device decision caching are not implemented. [Device adapters](docs/device-adapters.md) documents the boundary.
+Today the repo includes:
 
-The single-run commands still support optional screenshots, recordings, and HTML reports. AXe typing accepts caller-supplied printable US ASCII in empty, non-secure fields. Matrix reports currently contain semantic traces, not video capture.
+- native iOS Simulator execution through AXe + simctl;
+- native MobAI HTTP/DSL transport with device claims and cloud app refs;
+- mixed native, SSH and MobAI pools;
+- sharded and full device-matrix execution;
+- bounded Jev app learning;
+- deterministic source-path impact selection;
+- frozen scenarios, summaries, JUnit and HTML evidence;
+- deliberate reproduction;
+- agent-native `SKILL.md` and non-destructive project scaffolding.
 
-## Reference product dissection
+MobAI gives the transport access to physical, remote and cloud devices, but those environments still need to be provisioned and qualified for your app. The repository's offline tests are software-contract tests, not claims about live device-farm throughput.
 
-Use [`skills/reference-app-dissection/SKILL.md`](skills/reference-app-dissection/SKILL.md) when the job is to understand an authorized reference consumer app as a complete observable product system. The output is a versioned Reference Product Profile covering entities, journeys, behavioral systems, profiles/accounts, social, monetization, notifications, surfaces/states, design, motion, gestures, haptics/audio, accessibility, technical observations, and evidence.
-
-The skill deliberately stops at understanding the reference. It does not translate the profile into another market or target app. Downstream systems such as Brigade can consume the profile independently. Jev is optional scouting instrumentation, not the owner of the profile.
-
-## Benchmarks and development
-
-The existing comparison harness keeps the scenario, observed controls, executor, and verification contract fixed. See the [comparison protocol and recorded evidence](docs/comparison.md), [machine-readable results](docs/media/comparison.json), and [synchronized replay](https://clueless-creations.github.io/jev-ios-ultrafast/media/comparison.html).
+## Development
 
 ```sh
 python3 -m unittest discover -s tests -v
@@ -169,10 +274,14 @@ node --check examples/brigade-call.mjs
 node --test tests/test_brigade.mjs
 ```
 
-Tests run without live inference or Simulator input. Keep real-device measurements separate from mock-backed regression tests. Read [CONTRIBUTING.md](CONTRIBUTING.md) and [AGENTS.md](AGENTS.md) before extending the runtime.
+Read [AGENTS.md](AGENTS.md) and [architecture](docs/architecture.md) before changing the runtime. Keep live performance measurements separate from mock-backed tests.
+
+## Reference product dissection
+
+For authorized reference-app research, use [`skills/reference-app-dissection/SKILL.md`](skills/reference-app-dissection/SKILL.md). It produces a versioned observable-product profile. That is a separate research workflow, not the normal verification path.
 
 ## Credits and license
 
-Inspired by [Browser Use's Jev Ultrafast](https://github.com/browser-use/jev-ultrafast). Daybreak uses UIKit and the pinned [Appllama design guidance](https://github.com/Appllama/appllama-skills/tree/dd5caaec3d5d50ad7fc0324da238119c6b7c3707). Source and design provenance remain in [NOTICE.md](NOTICE.md).
+Inspired by [Browser Use's Jev Ultrafast](https://github.com/browser-use/jev-ultrafast). Daybreak uses UIKit and pinned [Appllama design guidance](https://github.com/Appllama/appllama-skills/tree/dd5caaec3d5d50ad7fc0324da238119c6b7c3707). See [NOTICE.md](NOTICE.md).
 
 [MIT licensed](LICENSE).

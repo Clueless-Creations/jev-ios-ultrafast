@@ -60,7 +60,7 @@ class OnboardingTests(unittest.TestCase):
     def test_maps_are_ignored_and_skill_is_local(self):
         self.init()
         self.assertIn("app-map", (self.root / ".jev-ios/.gitignore").read_text())
-        self.assertTrue((self.root / ".jev-ios/SKILL.md").is_file())
+        self.assertTrue((self.root / ".jev-ios/SKILL.md").is_file())\n        self.assertIn("host repo root .gitignore", self.init(force=True)["next"])
 
 
 if __name__ == "__main__": unittest.main()

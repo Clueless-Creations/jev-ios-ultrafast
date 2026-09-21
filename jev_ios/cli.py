@@ -210,7 +210,8 @@ def main(argv=None):
         line = json.dumps(event, ensure_ascii=False, allow_nan=False)
         events.append(event)
         if handle:
-            handle.write(line + "\n")
+            handle.write(line + "
+")
             handle.flush()
         print(line, flush=True)
     try:
@@ -284,7 +285,8 @@ def main(argv=None):
                                     allow_labels=args.allow_label, min_probability=args.min_probability, emit=emit)
             learned["bundle_id"] = args.bundle_id
             learned["udid"] = args.udid
-            map_handle.write(json.dumps(learned, indent=2, ensure_ascii=False) + "\n")
+            map_handle.write(json.dumps(learned, indent=2, ensure_ascii=False) + "
+")
             map_handle.flush()
             emit({"type": "artifact", "app_map": str(args.output), "status": learned["status"]})
             return 0 if learned["status"] == "sampled" else 2
@@ -309,7 +311,8 @@ def main(argv=None):
             from .device import find_axe
             emit({"type": "doctor", "axe": find_axe(), "xcrun": bool(shutil.which("xcrun")),
                   "gateway_credential_present": bool(os.environ.get("AI_GATEWAY_API_KEY") or os.environ.get("VERCEL_OIDC_TOKEN")),
-                  "vercel_cli_present": bool(shutil.which("vercel")), "mobai_url": os.environ.get("MOBAI_URL", "http://127.0.0.1:8686/api/v1"),\n                  "mobai_token_present": bool(os.environ.get("MOBAI_TOKEN")), "platform": sys.platform})
+                  "vercel_cli_present": bool(shutil.which("vercel")), "mobai_url": os.environ.get("MOBAI_URL", "http://127.0.0.1:8686/api/v1"),
+                  "mobai_token_present": bool(os.environ.get("MOBAI_TOKEN")), "platform": sys.platform})
             return 0
         scenario = scenario_from_args(args) if args.command == "run" else None
         if scenario and args.engine == "baseline" and scenario.min_probability != 0:
