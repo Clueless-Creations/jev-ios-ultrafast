@@ -63,7 +63,9 @@ Run `.jev-ios/run-smoke.sh` for the starter local smoke flow. For a pool:
 Keep `fixture_isolation: shared` until devices have independent fixture data.
 A verified Jev result is semantic UI evidence, not backend or visual acceptance.
 Never replay an uncertain action blindly. Keep app maps, traces and reports out
-of source control because observed UI may contain app data.
+of source control because observed UI may contain app data. Add `/runs/` to the
+host repository root `.gitignore`; the `.jev-ios/.gitignore` cannot ignore that
+root output directory.
 
 Add a pointer to this file from the app's existing AGENTS.md or CLAUDE.md. Init
 deliberately does not overwrite those files.
@@ -118,4 +120,4 @@ exec jev-ios matrix --suite .jev-ios/suite.json --mode shard --parallel 1 "$@"
         raise
     return {"scenario": ".jev-ios/smoke.json", "suite": ".jev-ios/suite.json",
             "agent_instructions": ".jev-ios/AGENT.md", "skill": ".jev-ios/SKILL.md", "runner": ".jev-ios/run-smoke.sh",
-            "next": "Inspect the test app, replace the scenario and start-label placeholders, then run the wrapper. Add /runs/ to the app's .gitignore."}
+            "next": "Add /runs/ to the host repo root .gitignore. Then inspect the test app, replace scenario/start-label placeholders, and run the wrapper."}
