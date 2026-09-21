@@ -26,7 +26,7 @@ When a user points you at Jev and asks you to use it on an app:
 3. Determine the app bundle ID and existing build/install workflow. Do not invent build commands.
 4. Run `jev-ios doctor`.
 5. Detect the available device path:
-   - If MobAI is configured or the task needs physical, remote, cloud, Android-adjacent, or broad fleet coverage, prefer MobAI.
+   - If MobAI is configured or the task needs physical, remote, cloud, Android-adjacent, or broad fleet coverage, use MobAI for execution. For first-time scenario authoring on a MobAI-only device, use the coding agent's interactive MobAI tooling/MCP to inspect the semantic UI before writing labels; `jev-ios inspect` and `jev-ios learn` currently target the native Simulator path.
    - Otherwise use native iOS Simulator through AXe + simctl.
 6. Run `jev-ios init --bundle-id <bundle>` if the app has no `.jev-ios/` scaffold.
 7. Inspect before authoring scenarios. Never guess accessibility labels.
@@ -59,7 +59,7 @@ Use MobAI for:
 
 Keep Jev responsible for dynamic semantic decisions, bounded learning, scenario intent, impact selection, and aggregation.
 
-MobAI MCP is optional. Use it when **you**, the coding agent, need interactive device tools. Do not insert MCP between the Jev scheduler and MobAI.
+MobAI MCP is optional for the Jev runtime but recommended when **you**, the coding agent, need to inspect or explore a MobAI-only physical/cloud device before a Jev scenario exists. Do not insert MCP between the Jev scheduler and MobAI during scenario execution.
 
 When a Jev-discovered path becomes stable and deterministic, prefer promoting it to a MobAI `.mob` flow rather than continuing to spend inference on every known step.
 
