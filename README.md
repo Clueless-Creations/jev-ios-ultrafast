@@ -83,10 +83,10 @@ This creates:
   smoke.json     first scenario
   suite.json     scenario scheduling + impact mapping
   run-smoke.sh   one-command local verification
-  .gitignore     private Jev artifacts
+  .gitignore     ignores Jev files inside .jev-ios
 ```
 
-It does not overwrite your existing `AGENTS.md` or `CLAUDE.md`. Add one pointer there:
+It does not overwrite your existing `AGENTS.md`, `CLAUDE.md`, or root `.gitignore`. Add one pointer to the agent guide and add `/runs/` to the host repo root `.gitignore` so private traces/reports are not accidentally committed:
 
 > For user-facing mobile work, read `.jev-ios/AGENT.md` and `.jev-ios/SKILL.md`, then run the relevant Jev verification before declaring the change complete.
 
