@@ -53,6 +53,8 @@ A case may override `start_labels` and `launch_args`. Every case needs at least 
 
 ## Device pool
 
+Pools may mix native Simulator, SSH-connected Mac, and MobAI workers.
+
 ```json
 {
   "schema": "jev-ios/pool/v1",
@@ -64,22 +66,38 @@ A case may override `start_labels` and `launch_args`. Every case needs at least 
       "host": "jev-mac",
       "python": "/Users/runner/jev/.venv/bin/python",
       "axe": "/opt/homebrew/bin/axe"
+    },
+    {"name": "mobai-phone", "transport": "mobai", "udid": "<mobai-device-id>"},
+    {
+      "name": "cloud-iphone",
+      "transport": "mobai",
+      "udid": "<cloud-device-id>",
+      "mobai_url": "https://host.example/api/v1",
+      "mobai_app": "<provider-app-ref>"
     }
   ]
 }
 ```
 
-Replace the example UUIDs and paths. A pool contains 1-32 unique device names and host/UUID pairs. Without `host`, execution is local. With `host`, it uses a trusted SSH alias or `user@host`. Configure ports and keys in your SSH config, not by putting options in the host field. `python` and `axe` refer to executables on that host.
+A pool contains 1-32 unique worker names and transport/device pairs.
 
-Alternatively, repeat `--udid` for local simulators. `--devices auto` selects already booted, available local iOS simulators only. It does not create clones, select unavailable runtimes, or provision cloud devices. Use explicit pools for repeatable device-matrix coverage.
+For native workers, `udid` is an iOS Simulator UUID. Without `host`, execution is local. With `host`, Jev uses a trusted SSH alias or `user@host`; configure ports and keys in SSH config. `python` and `axe` refer to executables on that host.
 
-### Remote Mac setup
+For MobAI workers, `udid` is the device ID returned by `jev-ios mobai-devices`. `mobai_url` is optional and otherwise comes from `MOBAI_URL` or the local MobAI default. `mobai_app` is an optional provider app reference used when starting a cloud session. Keep `MOBAI_TOKEN` in the environment, never the pool.
 
-Provision the Mac and its Simulator outside Jev. Install this same repository revision into the remote Python environment, install standalone AXe, and install the fixture app. Verify your normal SSH connection and host-key trust before running a pool.
+MobAI workers claim their devices for the lane, start the bridge, use compact semantic UI observations and predicate-based DSL execution, and release the claim when the session closes. A stale state is rejected before input. An uncertain transport outcome is not replayed.
 
-The coordinator starts `python -m jev_ios.remote` over SSH and exchanges bounded device-only messages. Jev inference remains on the coordinator, so remote workers do not need the gateway API key. Both sides must run matching code. A protocol mismatch or broken connection fails the lane; it does not trigger automatic action replay.
+Alternatively, repeat `--udid` for native local simulators. `--devices auto` selects already booted local iOS simulators only. Use explicit pools for repeatable device matrices.
 
-This supports an SSH-accessible hosted Mac, not a vendor device-farm API. Physical devices, Android, MobAI, cloud provisioning, and remote screenshot/video transfer are not implemented. No multi-device hardware benchmark has been collected for this scheduler.
+### Choosing native, SSH or MobAI
+
+Prefer native for the smallest local-only iOS setup.
+
+SSH remains available for a pre-provisioned Mac running the same Jev revision. The coordinator keeps model credentials and sends bounded device RPC rather than model prompts or shell commands.
+
+Prefer MobAI when it is already deployed or when you need physical devices, remote/distributed hosts, cloud farms, or a fleet abstraction. MobAI's deterministic `.mob` flows and CI tooling are also the better destination for stable known paths that no longer need Jev decisions.
+
+Jev does not itself purchase/provision a cloud device or build/sign the app. The selected transport must already be able to access the app/device. No multi-device hardware throughput claim is implied by the offline scheduler tests.
 
 ## Inspect the plan
 
